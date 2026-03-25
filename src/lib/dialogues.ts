@@ -1,0 +1,126 @@
+export type NormieType = 'Human' | 'Alien' | 'Cat' | 'Agent'
+
+const humanDialogues = [
+  "Just a regular day in the normieverse.",
+  "Have you seen my hat?",
+  "Crypto is going to change everything.",
+  "I need more action points.",
+  "The metaverse awaits us!",
+  "GM normies!",
+  "WAGMI my friend.",
+  "This neighborhood is getting crowded.",
+  "I should visit another continent.",
+  "The pixel art life chose me.",
+  "Another day, another block.",
+  "I wonder what the Aliens are saying...",
+  "Ser, this is a Normies world.",
+  "Diamond hands forever.",
+  "Building in the bear market.",
+]
+
+const alienDialogues = [
+  "Votre planète est fascinante.",
+  "Je ne comprends pas vos coutumes.",
+  "Earthlings are most peculiar.",
+  "Mes antennes captent quelque chose...",
+  "Je suis venu en paix, normie.",
+  "Ce monde pixelisé me plaît.",
+  "Votre cryptomonnaie m'intrige.",
+  "On the third moon of Normia...",
+  "Vos arts numériques sont primitifs.",
+  "J'analyse vos comportements.",
+  "Fascinant... absolument fascinant.",
+  "Mon vaisseau est garé dans l'espace.",
+]
+
+const catDialogues = [
+  "Meow.",
+  "Purrr...",
+  "Mrrrow?",
+  "Meow meow!",
+  "*purrs loudly*",
+  "Hisss!",
+  "Meooooow.",
+  "Prrrrrr.",
+  "*blinks slowly*",
+  "Miau.",
+  "MEOW.",
+  "*knocks something off the ledge*",
+  "Purr purr purr.",
+  "*brings you a pixel fish*",
+]
+
+const agentDialogues = [
+  "Monitoring the situation.",
+  "All targets accounted for.",
+  "Mission parameters updated.",
+  "Maintaining perimeter surveillance.",
+  "Intel confirmed. Proceeding.",
+  "Nothing to see here, citizen.",
+  "The operation is on schedule.",
+  "Cover maintained. Stay alert.",
+  "Scanning for anomalies...",
+  "Protocol 47 engaged.",
+  "Eyes on the objective.",
+  "Transmitting data to HQ.",
+  "Radio silence broken. Reporting.",
+  "The package is secure.",
+]
+
+const the100Dialogues = [
+  "I am one of the chosen few.",
+  "The hundred stand united.",
+  "Legendary. Always.",
+  "Gold runs through my veins.",
+  "THE100 never falls.",
+  "Born shiny, stay shiny.",
+  "You can't buy this kind of rare.",
+  "The council has spoken.",
+  "Above the normie masses.",
+  "Forged in the first block.",
+]
+
+const greetings: Record<NormieType, string[]> = {
+  Human: ["Hey there!", "Gm!", "What's good?", "Wagmi!"],
+  Alien: ["Bonjour.", "Salut.", "Greetings.", "Bonsoir."],
+  Cat: ["Meow!", "Mrrp!", "*blinks*"],
+  Agent: ["...", "Acknowledged.", "Move along."],
+}
+
+// THE100 dialogues are injected via isThe100 flag, not type
+export { the100Dialogues }
+
+export function getRandomDialogue(type: NormieType): string {
+  const pool = {
+    Human: humanDialogues,
+    Alien: alienDialogues,
+    Cat: catDialogues,
+    Agent: agentDialogues,
+  }[type] ?? humanDialogues
+
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+export function getThe100Dialogue(): string {
+  return the100Dialogues[Math.floor(Math.random() * the100Dialogues.length)]
+}
+
+export function getGreeting(type: NormieType): string {
+  const pool = greetings[type] ?? greetings.Human
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+export function getInteractionDialogue(typeA: NormieType, typeB: NormieType): string {
+  if (typeA === 'Cat' || typeB === 'Cat') {
+    return Math.random() > 0.5 ? "Meow!" : "Purrr..."
+  }
+  if (typeA === 'Alien' || typeB === 'Alien') {
+    return Math.random() > 0.5
+      ? "Votre espèce est intéressante."
+      : "We come in peace."
+  }
+  if (typeA === 'Agent' && typeB === 'Agent') {
+    return "..."
+  }
+  return getRandomDialogue(typeA)
+}

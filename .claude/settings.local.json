@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.normies.art)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Bash(taskkill /PID 38768 /F)",
+      "Bash(taskkill /PID 39592 /F)",
+      "Bash(npm run:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 37584 -Force\")"
+    ]
+  }
+}
