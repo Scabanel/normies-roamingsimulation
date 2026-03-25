@@ -1,0 +1,48 @@
+name: Update Normies Data
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'   # Every Monday at 2am UTC
+  workflow_dispatch:        # Also allow manual trigger from GitHub UI
+
+permissions:
+  contents: write           # Needed to commit + push
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Index all normies
+        run: npm run index
+
+      - name: Export static JSON
+        run: npm run export:static
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/normies-static.json
+          if git diff --staged --quiet; then
+            echo "No changes — skipping commit"
+          else
+            COUNT=$(node -e "const d=require('./public/normies-static.json'); console.log(d.length)" 2>/dev/null || echo "?")
+            git commit -m "chore: update normies data (${COUNT} normies)"
+            git push
+          fi
