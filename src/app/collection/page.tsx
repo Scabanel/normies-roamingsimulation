@@ -130,7 +130,7 @@ export default function CollectionPage() {
               The Collection
             </h1>
             <p style={{ fontSize: 15, color: '#bbb', lineHeight: 1.8 }}>
-              {normies.length === 0 ? 'Loading…' : `${normies.length.toLocaleString()} Normies${isLoading ? '…' : ' on the planet'}`}
+              {normies.length === 0 ? 'Loading…' : `${normies.length.toLocaleString()} Normies on the planet`}
             </p>
           </div>
         </section>
