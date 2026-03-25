@@ -18,19 +18,34 @@ const TYPE_PRIORITY: Record<string, number> = {
   Agent: 3,
 }
 
-function getRandomLandPosition(ci: number, mask: Uint8Array): { lat: number; lon: number } | null {
+// ── Seeded PRNG (mulberry32) — seed changes once per UTC day ─────────────────
+// All users loading on the same day get identical initial normie positions.
+const DAY_SEED = Math.floor(Date.now() / 86400000)
+
+function seededRng(id: number) {
+  // Combine day seed + normie id for a unique, deterministic seed per normie per day
+  let s = (DAY_SEED * 99991 + id * 6271) | 0
+  return function() {
+    s = (s + 0x6D2B79F5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function getSeededLandPosition(ci: number, mask: Uint8Array, rng: () => number): { lat: number; lon: number } | null {
   const c = CONTINENT_LATLON_BOUNDS[ci]
   for (let attempt = 0; attempt < 200; attempt++) {
-    const lat = c.minLat + Math.random() * (c.maxLat - c.minLat)
-    const lon = c.minLon + Math.random() * (c.maxLon - c.minLon)
+    const lat = c.minLat + rng() * (c.maxLat - c.minLat)
+    const lon = c.minLon + rng() * (c.maxLon - c.minLon)
     if (isOnLand(lat, lon, mask)) return { lat, lon }
   }
   return null
 }
 
-function pickContinentIndex(): number {
+function pickContinentIndexSeeded(rng: () => number): number {
   const total = CONTINENT_LATLON_BOUNDS.reduce((s, c) => s + c.weight, 0)
-  let r = Math.random() * total
+  let r = rng() * total
   for (let i = 0; i < CONTINENT_LATLON_BOUNDS.length; i++) {
     r -= CONTINENT_LATLON_BOUNDS[i].weight
     if (r <= 0) return i
@@ -57,7 +72,7 @@ function normieToState(n: NormieMetadata, continentIndex: number, pos: { lat: nu
     travelFromLat: pos.lat, travelFromLon: pos.lon,
     travelToLat: pos.lat, travelToLon: pos.lon,
     travelDestContinent: continentIndex,
-    flightCooldown: Math.random() * 60,
+    flightCooldown: Math.random() * 86400,  // staggered across the full 24h window
     teleportCooldown: Math.random() * 30,
     basementTargetId: -1,
     followTargetId: null,
@@ -99,8 +114,9 @@ export default function NormiesLoader() {
             fetched += batch.length
             setFetchedCount(fetched)
             const states = batch.map(n => {
-              const ci = pickContinentIndex()
-              const pos = getRandomLandPosition(ci, mask) ?? getRandomLandLatLon(ci) ?? { lat: 0, lon: 0 }
+              const rng = seededRng(n.id)
+              const ci = pickContinentIndexSeeded(rng)
+              const pos = getSeededLandPosition(ci, mask, rng) ?? getRandomLandLatLon(ci) ?? { lat: 0, lon: 0 }
               return normieToState(n, ci, pos)
             })
             addNormies(states)

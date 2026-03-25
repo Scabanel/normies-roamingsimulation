@@ -31,6 +31,8 @@ const alienDialogues = [
   "J'analyse vos comportements.",
   "Fascinant... absolument fascinant.",
   "Mon vaisseau est garé dans l'espace.",
+  "Le signal de chez moi s'affaiblit.",
+  "Votre soleil est inhabituellement brillant.",
 ]
 
 const catDialogues = [
@@ -87,7 +89,6 @@ const greetings: Record<NormieType, string[]> = {
   Agent: ["...", "Acknowledged.", "Move along."],
 }
 
-// THE100 dialogues are injected via isThe100 flag, not type
 export { the100Dialogues }
 
 export function getRandomDialogue(type: NormieType): string {

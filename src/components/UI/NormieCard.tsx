@@ -1,22 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useWorldStore } from '@/store/worldStore'
 import { isNighttime } from '@/lib/daynight'
 import { fetchNormieHolder, getOpenseaUrl } from '@/lib/normieApi'
 
 const TYPE_ACCENT: Record<string, string> = {
-  Human:  'border-blue-800',
-  Alien:  'border-purple-800',
-  Cat:    'border-orange-800',
-  Agent:  'border-gray-600',
+  Human: '#1e6fff',
+  Alien: '#9000ff',
+  Cat:   '#e07000',
+  Agent: '#888888',
 }
-const TYPE_COLOR: Record<string, string> = {
-  Human:  'text-blue-400',
-  Alien:  'text-purple-400',
-  Cat:    'text-orange-400',
-  Agent:  'text-gray-400',
-}
+const THE100_ACCENT = '#d4a800'
 
 const TRAVEL_LABEL: Record<string, string> = {
   flying:      '✈ Flying',
@@ -25,190 +20,341 @@ const TRAVEL_LABEL: Record<string, string> = {
   grounded:    'Roaming',
 }
 
-function truncateAddress(addr: string): string {
-  if (addr.length <= 12) return addr
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`
+function truncate(addr: string) {
+  return addr.length > 16 ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : addr
+}
+
+function hexToRgb(hex: string): string {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return r ? `${parseInt(r[1], 16)},${parseInt(r[2], 16)},${parseInt(r[3], 16)}` : '255,255,255'
+}
+
+function IconOpenSea() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 90 90" fill="currentColor">
+      <path d="M45 0C20.1 0 0 20.1 0 45s20.1 45 45 45 45-20.1 45-45S69.9 0 45 0zm-9.8 54.6l-10-14.5 10-14.5V54.6zm9.8 8.5L31.4 47.5l14.6-21.1 14.6 21.1L45 63.1zm9.8-8.5V25.6l10 14.5-10 14.5z" />
+    </svg>
+  )
+}
+
+function useSlabTilt() {
+  const slabRef = useRef<HTMLDivElement>(null)
+  const [isHovered, setIsHovered] = useState(false)
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = slabRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setMouse({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height })
+  }
+  const onMouseEnter = () => setIsHovered(true)
+  const onMouseLeave = () => { setIsHovered(false); setMouse({ x: 0.5, y: 0.5 }) }
+
+  const rotateX = isHovered ? (mouse.y - 0.5) * -14 : 0
+  const rotateY = isHovered ? (mouse.x - 0.5) *  14 : 0
+  const sa      = isHovered ? 1 : 0.6
+  const slabAng = 140 + rotateY * 3.5 - rotateX * 1.5
+  const holoAng = 115 + mouse.x * 40
+  const holoOff = mouse.y * 30
+
+  const slabGlass = `linear-gradient(${slabAng}deg,
+    rgba(255,255,255,${0.75*sa}) 0%,
+    rgba(220,220,240,${0.28*sa}) 18%,
+    rgba(255,255,255,${0.06*sa}) 42%,
+    rgba(200,210,230,${0.18*sa}) 62%,
+    rgba(255,255,255,${0.04*sa}) 78%,
+    rgba(255,255,255,${0.60*sa}) 100%)`
+
+  return { slabRef, isHovered, mouse, onMouseMove, onMouseEnter, onMouseLeave,
+           rotateX, rotateY, sa, slabAng, holoAng, holoOff, slabGlass }
 }
 
 export default function NormieCard() {
-  const { followedNormieId, focusedNormieId, normies } = useWorldStore()
+  const { followedNormieId, focusedNormieId, normies, setFollowedNormieId, setFocusedNormieId } = useWorldStore()
   const activeId = followedNormieId ?? focusedNormieId
-  const [expanded, setExpanded] = useState(false)
-  const [holder, setHolder] = useState<string | null>(null)
+  const [expanded, setExpanded]           = useState(false)
+  const [holder, setHolder]               = useState<string | null>(null)
   const [holderLoading, setHolderLoading] = useState(false)
 
-  // Reset expanded state and holder when the active normie changes
-  useEffect(() => {
-    setExpanded(false)
-    setHolder(null)
-  }, [activeId])
+  useEffect(() => { setExpanded(false); setHolder(null) }, [activeId])
 
-  // Fetch holder when expanded
   useEffect(() => {
     if (!expanded || activeId === null || holder !== null) return
     setHolderLoading(true)
-    fetchNormieHolder(activeId).then(h => {
-      setHolder(h)
-      setHolderLoading(false)
-    })
+    fetchNormieHolder(activeId).then(h => { setHolder(h); setHolderLoading(false) })
   }, [expanded, activeId, holder])
 
   if (activeId === null) return null
   const n = normies.find(nm => nm.id === activeId)
   if (!n) return null
 
-  const sleeping = isNighttime(n.lon)
-  // THE100 flagged normies get gold border regardless of type
-  const accent = n.isThe100 ? 'border-yellow-700' : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
-  const typeColor = n.isThe100 ? 'text-yellow-400' : (TYPE_COLOR[n.type] ?? TYPE_COLOR.Human)
-  const status = sleeping
-    ? 'Sleeping'
-    : n.travelState !== 'grounded'
-      ? TRAVEL_LABEL[n.travelState]
-      : n.inConversation ? 'Talking' : 'Roaming'
+  const sleeping  = n.type !== 'Alien' && isNighttime(n.lat, n.lon)
+  const accent    = n.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
+  const rgb       = hexToRgb(accent)
+  const status    = sleeping                       ? '💤 Sleeping'
+    : n.travelState !== 'grounded'                 ? TRAVEL_LABEL[n.travelState]
+    : n.inConversation                             ? '💬 Talking' : '🚶 Roaming'
+  const normieNum = String(n.id).padStart(4, '0')
 
-  /* ── Compact card ── */
-  if (!expanded) {
-    return (
-      <div
-        className={`absolute top-4 right-4 z-10 w-48 bg-black/92 border ${accent} rounded cursor-pointer select-none`}
-        style={{ borderWidth: '1px' }}
-        onClick={() => setExpanded(true)}
-      >
-        <div className="flex items-center gap-2.5 p-2.5">
-          {/* Thumbnail */}
-          <div className="relative shrink-0">
-            <img
-              src={n.imageUrl}
-              alt={n.name}
-              width={48}
-              height={48}
-              className="rounded"
-              style={{
-                imageRendering: 'pixelated',
-                width: 48,
-                height: 48,
-                objectFit: 'contain',
-                filter: sleeping ? 'grayscale(1) brightness(0.35)' : 'none',
-              }}
-            />
-            {sleeping && (
-              <span className="absolute bottom-0 right-0 text-xs leading-none">💤</span>
-            )}
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="font-mono text-[11px] text-[#E2E5E4] truncate">{n.name}</div>
-            <div className={`font-mono text-[9px] ${typeColor} truncate`}>
-              {n.type}{n.isThe100 ? ' ★' : ''}
-            </div>
-            <div className="flex items-center gap-1 mt-0.5">
-              <div className={`w-1 h-1 rounded-full shrink-0 ${sleeping ? 'bg-gray-700' : 'bg-green-500'}`} />
-              <span className="font-mono text-[9px] text-gray-600 truncate">{status}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="font-mono text-[8px] text-gray-800 text-right px-2.5 pb-1.5 -mt-1">
-          click for details ↗
-        </div>
-      </div>
-    )
+  const handleClose = () => {
+    setExpanded(false)
+    setFollowedNormieId(null)
+    setFocusedNormieId(null)
   }
 
-  /* ── Expanded modal ── */
+  return expanded
+    ? <ExpandedCard n={n} accent={accent} rgb={rgb} status={status} normieNum={normieNum}
+                    sleeping={sleeping} holder={holder} holderLoading={holderLoading}
+                    onClose={handleClose} onCollapse={() => setExpanded(false)} />
+    : <CompactCard  n={n} accent={accent} rgb={rgb} status={status} normieNum={normieNum}
+                    sleeping={sleeping} onExpand={() => setExpanded(true)} onClose={handleClose} />
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compact card — top-right corner
+───────────────────────────────────────────────────────────────────────────── */
+function CompactCard({ n, accent, rgb, status, normieNum, sleeping, onExpand, onClose }: {
+  n: ReturnType<typeof useWorldStore.getState>['normies'][0]
+  accent: string; rgb: string; status: string; normieNum: string; sleeping: boolean
+  onExpand: () => void; onClose: () => void
+}) {
+  const tilt = useSlabTilt()
+  const photoAng   = tilt.slabAng + 60
+  const photoGlass = `linear-gradient(${photoAng}deg,
+    rgba(255,255,255,${0.50*tilt.sa}) 0%,
+    rgba(${rgb},${0.30*tilt.sa}) 25%,
+    rgba(255,255,255,${0.05*tilt.sa}) 52%,
+    rgba(${rgb},${0.18*tilt.sa}) 74%,
+    rgba(255,255,255,${0.40*tilt.sa}) 100%)`
+
   return (
-    <div
-      className="absolute inset-0 z-20 flex items-center justify-end pointer-events-none"
-      style={{ paddingRight: '1rem', paddingTop: '1rem', paddingBottom: '1rem' }}
-    >
+    <div style={{ position: 'fixed', top: 60, right: 14, width: 210, perspective: 900, zIndex: 50 }}>
       <div
-        className={`pointer-events-auto w-64 bg-black/95 border ${accent} rounded overflow-hidden flex flex-col`}
-        style={{ borderWidth: '1px', maxHeight: 'calc(100vh - 2rem)' }}
+        ref={tilt.slabRef}
+        onMouseMove={tilt.onMouseMove} onMouseEnter={tilt.onMouseEnter} onMouseLeave={tilt.onMouseLeave}
+        style={{
+          padding: '2px', background: tilt.slabGlass, cursor: 'pointer',
+          transform: `perspective(900px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(${tilt.isHovered ? 8 : 0}px)`,
+          transition: tilt.isHovered ? 'transform 0.07s ease-out, box-shadow 0.3s' : 'transform 0.55s ease, box-shadow 0.55s',
+          boxShadow: tilt.isHovered ? `0 20px 44px rgba(0,0,0,0.85), 0 0 40px rgba(${rgb},0.08)` : '0 6px 24px rgba(0,0,0,0.55)',
+        }}
+        onClick={onExpand}
       >
-        {/* Portrait */}
-        <div className="relative bg-[#0a0a0a] shrink-0">
-          <img
-            src={n.imageUrl}
-            alt={n.name}
-            style={{
-              imageRendering: 'pixelated',
-              width: '100%',
-              aspectRatio: '1/1',
-              objectFit: 'contain',
-              maxHeight: '200px',
-              display: 'block',
-              filter: sleeping ? 'grayscale(1) brightness(0.35)' : 'none',
-            }}
-          />
-          {/* Type badge */}
-          <div className={`absolute top-1.5 left-1.5 font-mono text-[9px] px-1.5 py-0.5 border rounded bg-black/80 ${accent} ${typeColor}`}>
-            {n.type}{n.isThe100 ? ' ★' : ''}
-          </div>
-          {/* Close */}
-          <button
-            onClick={() => setExpanded(false)}
-            className="absolute top-1.5 right-1.5 font-mono text-[11px] text-gray-600 hover:text-white bg-black/60 rounded px-1.5 py-0.5 transition-colors"
-          >
-            ✕
-          </button>
-          {sleeping && (
-            <div className="absolute inset-0 flex items-end justify-end p-2">
-              <span className="text-xl leading-none">💤</span>
-            </div>
-          )}
-        </div>
+        <div style={{ background: '#131315', overflow: 'hidden', fontFamily: 'monospace' }}>
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1">
-          {/* Name + location + links */}
-          <div className="px-3 py-2 border-b border-gray-900">
-            <div className="font-mono text-[12px] text-[#E2E5E4]">{n.name}</div>
-            <div className="font-mono text-[9px] text-gray-600">{n.continent}</div>
-
-            {/* Holder */}
-            <div className="mt-1.5 flex items-center gap-1">
-              <span className="font-mono text-[9px] text-gray-700">Holder</span>
-              {holderLoading ? (
-                <span className="font-mono text-[9px] text-gray-700 animate-pulse">…</span>
-              ) : holder ? (
-                <span className="font-mono text-[9px] text-gray-400 truncate">{truncateAddress(holder)}</span>
-              ) : (
-                <span className="font-mono text-[9px] text-gray-800">—</span>
-              )}
-            </div>
-
-            {/* OpenSea link */}
-            <a
-              href={getOpenseaUrl(n.id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-1.5 font-mono text-[9px] text-gray-600 hover:text-[#2081E2] transition-colors"
-              onClick={e => e.stopPropagation()}
-            >
-              <svg width="10" height="10" viewBox="0 0 90 90" fill="currentColor">
-                <path d="M45 0C20.1 0 0 20.1 0 45s20.1 45 45 45 45-20.1 45-45S69.9 0 45 0zm-9.8 54.6l-10-14.5 10-14.5V54.6zm9.8 8.5L31.4 47.5l14.6-21.1 14.6 21.1L45 63.1zm9.8-8.5V25.6l10 14.5-10 14.5z"/>
-              </svg>
-              View on OpenSea
-            </a>
-          </div>
-
-          {/* Status */}
-          <div className="px-3 py-1.5 border-b border-gray-900 flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${sleeping ? 'bg-gray-700' : 'bg-green-500'}`} />
-            <span className="font-mono text-[9px] text-gray-500">{status}</span>
-          </div>
-
-          {/* Traits */}
-          <div className="px-3 py-2 space-y-1">
-            <div className="font-mono text-[9px] text-gray-700 uppercase tracking-widest mb-1.5">Traits</div>
-            {n.attributes.map((attr, i) => (
-              <div key={i} className="flex justify-between gap-2">
-                <span className="font-mono text-[9px] text-gray-700 shrink-0">{attr.trait_type}</span>
-                <span className="font-mono text-[9px] text-gray-400 text-right truncate">{attr.value}</span>
+          {/* Top label */}
+          <div style={{ background: '#0c0c0e', padding: '6px 10px 5px', borderBottom: `2px solid ${accent}`, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 0.45 : 0.1, transition: 'opacity 0.4s', background: `linear-gradient(90deg, transparent, rgba(${rgb},0.2) ${tilt.mouse.x*80+5}%, transparent)`, pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3, position: 'relative' }}>
+              <span style={{ fontSize: 12, letterSpacing: '0.08em' }}>
+                <span style={{ color: accent }}>N</span><span style={{ color: '#fff' }}>ORMIES</span>
+              </span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: '#777', letterSpacing: '0.06em' }}>#{normieNum}</span>
+                <button
+                  onClick={e => { e.stopPropagation(); onClose() }}
+                  style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}
+                >✕</button>
               </div>
-            ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', position: 'relative' }}>
+              <span style={{ fontSize: 11, color: '#ddd', textTransform: 'uppercase', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{n.name}</span>
+              <span style={{ fontSize: 10, color: accent, letterSpacing: '0.1em' }}>{n.isThe100 ? '★ THE100' : n.type.toUpperCase()}</span>
+            </div>
+          </div>
+
+          {/* Inner slab */}
+          <div style={{ padding: 6 }}>
+            <div style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.07)', padding: 9, position: 'relative', overflow: 'hidden' }}>
+              {/* Holo */}
+              <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 0.5 : 0, transition: 'opacity 0.35s', background: `linear-gradient(${tilt.holoAng}deg, transparent 0%, rgba(255,50,90,0.24) ${15+tilt.holoOff}%, rgba(255,190,50,0.24) ${28+tilt.holoOff}%, rgba(50,255,140,0.24) ${42+tilt.holoOff}%, rgba(50,140,255,0.24) ${56+tilt.holoOff}%, rgba(180,50,255,0.24) ${70+tilt.holoOff}%, transparent 100%)`, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 2 }} />
+              {/* Glare */}
+              <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 1 : 0, transition: 'opacity 0.35s', background: `radial-gradient(ellipse at ${tilt.mouse.x*100}% ${tilt.mouse.y*100}%, rgba(255,255,255,0.14) 0%, transparent 60%)`, pointerEvents: 'none', zIndex: 3 }} />
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                {/* Portrait */}
+                <div style={{ padding: '2px', background: photoGlass, flexShrink: 0 }}>
+                  <div style={{ width: 58, height: 58, background: '#2a2a2a', overflow: 'hidden', position: 'relative' }}>
+                    <img src={n.imageUrl} alt={n.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated', filter: sleeping ? 'grayscale(1) brightness(0.3)' : 'none' }} />
+                  </div>
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: sleeping ? '#444' : '#22cc66', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: '#ccc' }}>{status}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.04em' }}>{n.continent}</div>
+                  <div style={{ fontSize: 10, color: '#666', marginTop: 6, letterSpacing: '0.05em' }}>tap to expand ↗</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom strip */}
+          <div style={{ background: '#0c0c0e', borderTop: '1px solid rgba(255,255,255,0.04)', padding: '4px 10px', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase' }}>NORMIES.ART</span>
+            <span style={{ fontSize: 9, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase' }}>WORLD SIM</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Expanded card — centered modal with backdrop blur
+───────────────────────────────────────────────────────────────────────────── */
+function ExpandedCard({ n, accent, rgb, status, normieNum, sleeping, holder, holderLoading, onClose, onCollapse }: {
+  n: ReturnType<typeof useWorldStore.getState>['normies'][0]
+  accent: string; rgb: string; status: string; normieNum: string; sleeping: boolean
+  holder: string | null; holderLoading: boolean; onClose: () => void; onCollapse: () => void
+}) {
+  const tilt = useSlabTilt()
+  const photoAng   = tilt.slabAng + 60
+  const photoGlass = `linear-gradient(${photoAng}deg,
+    rgba(255,255,255,${0.50*tilt.sa}) 0%,
+    rgba(${rgb},${0.32*tilt.sa}) 25%,
+    rgba(255,255,255,${0.05*tilt.sa}) 52%,
+    rgba(${rgb},${0.20*tilt.sa}) 74%,
+    rgba(255,255,255,${0.42*tilt.sa}) 100%)`
+
+  return (
+    /* Backdrop overlay — click outside to dismiss */
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        background: 'rgba(0,0,0,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {/* Card — stop click propagation so clicking card doesn't close */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: 340, maxHeight: '82vh', perspective: 900, display: 'flex', flexDirection: 'column' }}
+      >
+        <div
+          ref={tilt.slabRef}
+          onMouseMove={tilt.onMouseMove} onMouseEnter={tilt.onMouseEnter} onMouseLeave={tilt.onMouseLeave}
+          style={{
+            padding: '2px', background: tilt.slabGlass, display: 'flex', flexDirection: 'column', maxHeight: '82vh',
+            transform: `perspective(900px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(${tilt.isHovered ? 12 : 0}px)`,
+            transition: tilt.isHovered ? 'transform 0.07s ease-out, box-shadow 0.3s' : 'transform 0.55s ease, box-shadow 0.55s',
+            boxShadow: tilt.isHovered ? `0 28px 56px rgba(0,0,0,0.9), 0 0 60px rgba(${rgb},0.12)` : '0 8px 32px rgba(0,0,0,0.7)',
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          <div style={{ background: '#131315', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'monospace', maxHeight: 'inherit' }}>
+
+            {/* Top label */}
+            <div style={{ background: '#0c0c0e', padding: '8px 12px 6px', borderBottom: `2px solid ${accent}`, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 0.5 : 0.12, transition: 'opacity 0.4s', background: `linear-gradient(90deg, transparent, rgba(${rgb},0.22) ${tilt.mouse.x*80+5}%, transparent)`, pointerEvents: 'none' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, position: 'relative' }}>
+                <span style={{ fontSize: 14, letterSpacing: '0.08em' }}>
+                  <span style={{ color: accent }}>N</span><span style={{ color: '#fff' }}>ORMIES</span>
+                </span>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#666', letterSpacing: '0.06em' }}>#{normieNum}</span>
+                  <button
+                    onClick={onCollapse}
+                    title="Collapse"
+                    style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#888', cursor: 'pointer', fontSize: 11, padding: '2px 7px', borderRadius: 2 }}>⊟</button>
+                  <button
+                    onClick={onClose}
+                    title="Close"
+                    style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#888', cursor: 'pointer', fontSize: 11, padding: '2px 7px', borderRadius: 2 }}>✕</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                <span style={{ fontSize: 13, color: '#eee', textTransform: 'uppercase', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '72%', fontWeight: 700 }}>{n.name}</span>
+                <span style={{ fontSize: 11, color: accent, letterSpacing: '0.1em' }}>{n.isThe100 ? '★ THE100' : n.type.toUpperCase()}</span>
+              </div>
+            </div>
+
+            {/* Slab padding zone */}
+            <div style={{ padding: 8, flex: 1, display: 'flex', overflow: 'hidden' }}>
+              <div style={{ flex: 1, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+
+                {/* Holographic rainbow */}
+                <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 0.55 : 0, transition: 'opacity 0.35s', background: `linear-gradient(${tilt.holoAng}deg, transparent 0%, rgba(255,50,90,0.28) ${15+tilt.holoOff}%, rgba(255,190,50,0.28) ${28+tilt.holoOff}%, rgba(50,255,140,0.28) ${42+tilt.holoOff}%, rgba(50,140,255,0.28) ${56+tilt.holoOff}%, rgba(180,50,255,0.28) ${70+tilt.holoOff}%, rgba(255,50,180,0.28) ${82+tilt.holoOff}%, transparent 100%)`, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 2 }} />
+                {/* Specular glare */}
+                <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 1 : 0, transition: 'opacity 0.35s', background: `radial-gradient(ellipse at ${tilt.mouse.x*100}% ${tilt.mouse.y*100}%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 28%, transparent 65%)`, pointerEvents: 'none', zIndex: 3 }} />
+                {/* Corner foil */}
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '40%', height: '28%', opacity: tilt.isHovered ? 0.25 : 0.04, transition: 'opacity 0.4s', background: `radial-gradient(ellipse at 100% 100%, rgba(${rgb},0.6), transparent 70%)`, pointerEvents: 'none', zIndex: 2 }} />
+
+                {/* Scrollable content */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+
+                  {/* Portrait */}
+                  <div style={{ padding: '12px 12px 0', flexShrink: 0 }}>
+                    <div style={{ padding: '2px', background: photoGlass, boxShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
+                      <div style={{ width: '100%', aspectRatio: '1/1', background: '#222', overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, rgba(255,255,255,0.07), transparent)', pointerEvents: 'none', zIndex: 4 }} />
+                        <img src={n.imageUrl} alt={n.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated', display: 'block', filter: sleeping ? 'grayscale(1) brightness(0.3)' : 'none' }} />
+                        {sleeping && <div style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 5, fontSize: 20 }}>💤</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Name + status */}
+                  <div style={{ padding: '10px 12px 8px', flexShrink: 0 }}>
+                    <p style={{ fontSize: 16, color: '#fff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6 }}>{n.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: sleeping ? '#444' : '#22cc66', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: '#bbb' }}>{status}</span>
+                      <span style={{ fontSize: 11, color: '#666', marginLeft: 'auto' }}>{n.continent}</span>
+                    </div>
+                  </div>
+
+                  {/* Holder */}
+                  <div style={{ padding: '6px 12px 8px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                    <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Holder</div>
+                    {holderLoading
+                      ? <span style={{ fontSize: 11, color: '#666' }}>loading…</span>
+                      : holder
+                        ? <span style={{ fontSize: 12, color: '#ccc' }}>{truncate(holder)}</span>
+                        : <span style={{ fontSize: 11, color: '#444' }}>—</span>}
+                  </div>
+
+                  {/* Traits */}
+                  <div style={{ padding: '6px 12px 14px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                    <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Traits</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {n.attributes.map((attr, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                          <span style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{attr.trait_type}</span>
+                          <span style={{ fontSize: 12, color: '#eee', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{attr.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* OpenSea — pinned at bottom */}
+                <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: '#1c1c1e', position: 'relative', zIndex: 4 }}>
+                  <a
+                    href={getOpenseaUrl(n.id)}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#999', textDecoration: 'none', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#2081E2'; el.style.borderColor = 'rgba(32,129,226,0.4)'; el.style.background = 'rgba(32,129,226,0.08)' }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#999'; el.style.borderColor = 'rgba(255,255,255,0.09)'; el.style.background = 'rgba(255,255,255,0.04)' }}
+                  >
+                    <IconOpenSea /> View on OpenSea
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom strip */}
+            <div style={{ background: '#0c0c0e', borderTop: '1px solid rgba(255,255,255,0.04)', padding: '5px 12px', display: 'flex', justifyContent: 'space-between', flexShrink: 0 }}>
+              <span style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase' }}>NORMIES.ART</span>
+              <span style={{ fontSize: 9, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase' }}>WORLD SIMULATION</span>
+            </div>
+
           </div>
         </div>
       </div>

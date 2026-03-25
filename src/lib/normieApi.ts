@@ -20,8 +20,8 @@ export interface NormiePosition {
 const API_BASE = 'https://api.normies.art'
 const MAX_ID = 8888
 
-// Normies NFT contract address on Ethereum mainnet
-export const NORMIES_CONTRACT = '0x8a90cab2b38dba80c64b7734e58ee1db38b8992e'
+// Normies NFT contract address on Ethereum mainnet (verified on OpenSea)
+export const NORMIES_CONTRACT = '0x9eb6e2025b64f340691e424b7fe7022ffde12438'
 
 export function getOpenseaUrl(id: number): string {
   return `https://opensea.io/assets/ethereum/${NORMIES_CONTRACT}/${id}`

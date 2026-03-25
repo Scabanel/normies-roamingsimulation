@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { NormieMetadata, NormieType } from '@/lib/normieApi'
-import { CONTINENT_LATLON_BOUNDS, getRandomLandLatLon, findNearestBasement, BASEMENT_STATIONS } from '@/lib/worldMapData'
+import { CONTINENT_LATLON_BOUNDS, getRandomLandLatLon, findNearestBasement, BASEMENT_STATIONS, isOnLandCached } from '@/lib/worldMapData'
 import { getRandomDialogue, getGreeting } from '@/lib/dialogues'
 import type { NormieType as DialogueType } from '@/lib/dialogues'
 import { isNighttime, updateSunPosition } from '@/lib/daynight'
@@ -59,15 +59,18 @@ export interface ActiveConversation {
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 const DEG2RAD = Math.PI / 180
-const MOVE_SPEED = 0.015  // deg/s normal movement (very slow realistic)
-const FLY_SPEED = 0.8   // deg/s during flight
-const TELE_DURATION = 1.2 // seconds for teleport animation
-const FLIGHT_COOLDOWN = 60   // 1 min (Human & Agent)
-const TELEPORT_COOLDOWN = 300 // 5 min (Alien)
+const MOVE_SPEED = 0.025  // deg/s — faster, more lively
+const FLY_SPEED = 1.2   // deg/s during flight
+const TELE_DURATION = 1.0 // seconds for teleport animation
+const FLIGHT_COOLDOWN  = 86400  // 24h real time — each normie flies at most once per day
+const MAX_FLIGHTS_DAY  = 10     // max group-flight events per real 24-hour period
+const TELEPORT_COOLDOWN = 180 // 3 min (Alien)
 const PROXIMITY_DEG = 2.5    // conversation trigger distance
-const CONV_CHANCE = 0.3      // per second while close
+const CONV_CHANCE = 0.5      // per second while close
 const MSG_TIME = 2.5         // seconds per message
-const MAX_CONVS = 5
+const MAX_CONVS = 12
+// Max pairs to check per proximity pass (caps O(n²) cost)
+const MAX_PROX_CHECKS = 4000
 const CAT_FOLLOW_RANGE = 3.0 // degrees — cats stay within this range of their human
 
 function latLonToUnit(lat: number, lon: number): [number, number, number] {
@@ -102,6 +105,50 @@ function pickRandomOtherContinent(current: number): number {
   let idx = current
   while (idx === current) idx = Math.floor(Math.random() * CONTINENT_LATLON_BOUNDS.length)
   return idx
+}
+
+// ── Alien night-gathering state ───────────────────────────────────────────────
+let _nightRallyLat = 20
+let _nightRallyLon = 20
+let _nightRallyContIdx = 2
+let _nightRallyRefreshTimer = 0
+const _alienGathering = new Set<number>()  // alien ids currently in gathering mode
+
+// Concentric ring slots for the alien gathering circle (clearly spaced)
+const ALIEN_RINGS = [{ slots: 16, r: 4 }, { slots: 28, r: 7 }, { slots: 40, r: 10 }]
+const ALIEN_RING_TOTAL = ALIEN_RINGS.reduce((s, rr) => s + rr.slots, 0)  // 84 total slots
+
+function getAlienCircleSlot(id: number): { angle: number; r: number } {
+  const slotId = id % ALIEN_RING_TOTAL
+  let offset = 0
+  for (const ring of ALIEN_RINGS) {
+    if (slotId < offset + ring.slots) {
+      return { angle: (slotId - offset) / ring.slots * 2 * Math.PI, r: ring.r }
+    }
+    offset += ring.slots
+  }
+  return { angle: 0, r: 4 }
+}
+
+// Global daily flight budget — resets every real 24 hours
+let _flightsToday  = 0
+let _flightDayTimer = 86400  // seconds until daily reset
+
+function refreshNightRally(): void {
+  const dark = CONTINENT_LATLON_BOUNDS
+    .map((c, i) => ({
+      i,
+      lat: (c.minLat + c.maxLat) / 2,
+      lon: (c.minLon + c.maxLon) / 2,
+    }))
+    .filter(c => isNighttime(c.lat, c.lon))
+  if (dark.length > 0) {
+    const pick = dark[Math.floor(Math.random() * dark.length)]
+    _nightRallyLat = pick.lat
+    _nightRallyLon = pick.lon
+    _nightRallyContIdx = pick.i
+  }
+  _nightRallyRefreshTimer = 60
 }
 
 function generateConversation(a: NormieState, b: NormieState): ConversationMessage[] {
@@ -180,6 +227,17 @@ export const useWorldStore = create<WorldStore>((set) => ({
     // Update sun position (internally throttled to 1/sec)
     updateSunPosition()
 
+    // Refresh night rally point periodically
+    _nightRallyRefreshTimer -= delta
+    if (_nightRallyRefreshTimer <= 0) refreshNightRally()
+
+    // Decrement daily flight budget timer; reset at midnight (every 24h real time)
+    _flightDayTimer -= delta
+    if (_flightDayTimer <= 0) {
+      _flightDayTimer = 86400
+      _flightsToday   = 0
+    }
+
     const nm = new Map<number, NormieState>(state.normies.map(n => [n.id, { ...n }]))
 
     // ── advance conversations ─────────────────────────────────────────────────
@@ -210,7 +268,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
       let next = { ...n }
 
       // Sleeping normies are completely immobile — Aliens never sleep
-      if (next.type !== 'Alien' && isNighttime(next.lon) && next.travelState === 'grounded' && !next.inConversation) {
+      if (next.type !== 'Alien' && isNighttime(next.lat, next.lon) && next.travelState === 'grounded' && !next.inConversation) {
         next.isTalking = false
         next.isMoving = false
         nm.set(id, next)
@@ -229,6 +287,10 @@ export const useWorldStore = create<WorldStore>((set) => ({
       // ── FLYING ──────────────────────────────────────────────────────────────
       if (next.travelState === 'flying') {
         next.travelProgress = Math.min(1, next.travelProgress + FLY_SPEED * delta / 180)
+        // Interpolate lat/lon so the dot moves across the globe during flight
+        const fp = next.travelProgress
+        next.lat = next.travelFromLat + (next.travelToLat - next.travelFromLat) * fp
+        next.lon = next.travelFromLon + (next.travelToLon - next.travelFromLon) * fp
         if (next.travelProgress >= 1) {
           next.lat = next.travelToLat
           next.lon = next.travelToLon
@@ -293,28 +355,133 @@ export const useWorldStore = create<WorldStore>((set) => ({
         continue
       }
 
+      // ── Alien night-gathering ────────────────────────────────────────────────
+      // Night aliens teleport/walk to a circle formation and whisper together.
+      // This block always ends with nm.set+continue so it never leaks into normal logic.
+      if (next.type === 'Alien' && next.travelState === 'grounded') {
+        const inNight = isNighttime(next.lat, next.lon)
+
+        if (inNight) {
+          _alienGathering.add(next.id)
+
+          // Let active conversations finish without interruption
+          if (next.inConversation) { nm.set(id, next); continue }
+
+          // Advance cooldowns
+          if (next.flightCooldown > 0)   next.flightCooldown   = Math.max(0, next.flightCooldown   - delta)
+          if (next.teleportCooldown > 0) next.teleportCooldown = Math.max(0, next.teleportCooldown - delta)
+          if (next.dialogueTimer > 0)    next.dialogueTimer   -= delta
+          if (next.dialogueTimer <= 0)   next.isTalking = false
+
+          // Deterministic circle slot — concentric rings (4°, 7°, 10°) clearly spaced
+          const { angle, r } = getAlienCircleSlot(next.id)
+          const tLat = _nightRallyLat + r * Math.cos(angle)
+          const tLon = _nightRallyLon + r * Math.sin(angle)
+          const dist = angDeg(next.lat, next.lon, tLat, tLon)
+
+          if (dist > 8 && next.teleportCooldown <= 0) {
+            // Far away — teleport directly to circle slot
+            next.travelState    = 'teleporting'
+            next.travelProgress = 0
+            next.travelFromLat  = next.lat
+            next.travelFromLon  = next.lon
+            next.travelToLat    = tLat
+            next.travelToLon    = tLon
+            next.travelDestContinent = _nightRallyContIdx
+            next.teleportCooldown    = 30   // short cooldown so they don't bounce
+            next.isTalking       = true
+            next.currentDialogue = '🌑 ...'
+            next.dialogueTimer   = 1.5
+          } else if (dist > 0.15) {
+            // Close enough — walk toward slot at double speed
+            const dLat = tLat - next.lat
+            const dLon = tLon - next.lon
+            const d = Math.sqrt(dLat * dLat + dLon * dLon)
+            const speed = MOVE_SPEED * 2.5 * delta
+            const ratio = Math.min(1, speed / d)
+            next.lat += dLat * ratio
+            next.lon += dLon * ratio
+            next.isMoving = true
+          } else {
+            // At slot — stand still and whisper conspiracy
+            next.isMoving = false
+            if (!next.isTalking && next.dialogueTimer <= 0) {
+              next.isTalking       = true
+              next.currentDialogue = getRandomDialogue('Alien')
+              next.dialogueTimer   = 3 + Math.random() * 5
+            }
+          }
+
+          nm.set(id, next)
+          continue  // ← skip ALL normal wait/teleport/movement logic
+
+        } else {
+          // Daytime — if was gathering, scatter with a dawn teleport
+          const wasGathering = _alienGathering.has(next.id)
+          _alienGathering.delete(next.id)
+          if (wasGathering && next.teleportCooldown <= 0) {
+            let destCi  = pickRandomOtherContinent(next.continentIndex)
+            let destPos = getRandomLandLatLon(destCi)
+            let tries   = 0
+            while (destPos && isNighttime(destPos.lat, destPos.lon) && tries < 10) {
+              destCi  = pickRandomOtherContinent(next.continentIndex)
+              destPos = getRandomLandLatLon(destCi)
+              tries++
+            }
+            if (destPos) {
+              next.travelState     = 'teleporting'
+              next.travelProgress  = 0
+              next.travelFromLat   = next.lat
+              next.travelFromLon   = next.lon
+              next.travelToLat     = destPos.lat
+              next.travelToLon     = destPos.lon
+              next.travelDestContinent = destCi
+              next.teleportCooldown    = TELEPORT_COOLDOWN
+              next.isTalking       = true
+              next.currentDialogue = '🌅 Dawn!'
+              next.dialogueTimer   = 2
+              nm.set(id, next)
+              continue
+            }
+          }
+          // Normal daytime Alien logic falls through below
+        }
+      }
+
       // ── WAIT TIMER ───────────────────────────────────────────────────────────
       if (next.waitTimer > 0) {
         next.waitTimer = Math.max(0, next.waitTimer - delta)
         if (next.waitTimer <= 0) {
           const roll = Math.random()
 
-          if (next.type === 'Human' && next.flightCooldown <= 0 && roll < 0.05) {
-            // Human: fly to another continent
+          if (next.type === 'Human' && next.flightCooldown <= 0 && roll < 0.15
+              && _flightsToday < MAX_FLIGHTS_DAY) {
+            // Group flight: trigger 20-80 humans on same continent together (max 10/day)
+            _flightsToday++
             const destCi = pickRandomOtherContinent(next.continentIndex)
-            const destPos = getRandomLandLatLon(destCi)
-            if (destPos) {
-              next.travelState = 'flying'
-              next.travelProgress = 0
-              next.travelFromLat = next.lat
-              next.travelFromLon = next.lon
-              next.travelToLat = destPos.lat
-              next.travelToLon = destPos.lon
-              next.travelDestContinent = destCi
-              next.flightCooldown = FLIGHT_COOLDOWN
-              next.isTalking = true
-              next.currentDialogue = '✈️ Flying!'
-              next.dialogueTimer = 3
+            const ci = next.continentIndex
+            const groupSize = 19 + Math.floor(Math.random() * 61)  // 19–79 additional
+            let grouped = 0
+            for (const [oid, other] of nm) {
+              if (grouped >= groupSize) break
+              if (oid === id || other.type !== 'Human' || other.continentIndex !== ci) continue
+              if (other.travelState !== 'grounded' || other.flightCooldown > 0 || other.inConversation) continue
+              const dpos = getRandomLandLatLon(destCi)
+              if (!dpos) continue
+              nm.set(oid, { ...other, travelState: 'flying', travelProgress: 0,
+                travelFromLat: other.lat, travelFromLon: other.lon,
+                travelToLat: dpos.lat, travelToLon: dpos.lon,
+                travelDestContinent: destCi, flightCooldown: FLIGHT_COOLDOWN,
+                isTalking: true, currentDialogue: '✈️ Flying!', dialogueTimer: 3 })
+              grouped++
+            }
+            const dpos0 = getRandomLandLatLon(destCi)
+            if (dpos0) {
+              next.travelState = 'flying'; next.travelProgress = 0
+              next.travelFromLat = next.lat; next.travelFromLon = next.lon
+              next.travelToLat = dpos0.lat; next.travelToLon = dpos0.lon
+              next.travelDestContinent = destCi; next.flightCooldown = FLIGHT_COOLDOWN
+              next.isTalking = true; next.currentDialogue = '✈️ Flying!'; next.dialogueTimer = 3
             }
           } else if (next.type === 'Alien' && next.teleportCooldown <= 0 && roll < 0.08) {
             // Alien: teleport to another continent
@@ -371,6 +538,19 @@ export const useWorldStore = create<WorldStore>((set) => ({
             next.targetLat = target.lat
             next.targetLon = target.lon
             next.isMoving = true
+            // Human exclusion zone: push humans away from active alien gathering
+            if (next.type === 'Human' && _alienGathering.size > 5) {
+              const distToRally = angDeg(next.lat, next.lon, _nightRallyLat, _nightRallyLon)
+              if (distToRally < 12) {
+                for (let attempt = 0; attempt < 5; attempt++) {
+                  const alt = pickTarget(next)
+                  if (angDeg(alt.lat, alt.lon, _nightRallyLat, _nightRallyLon) > 15) {
+                    next.targetLat = alt.lat; next.targetLon = alt.lon
+                    break
+                  }
+                }
+              }
+            }
           }
         }
         nm.set(id, next)
@@ -424,42 +604,43 @@ export const useWorldStore = create<WorldStore>((set) => ({
         next.lat = next.targetLat
         next.lon = next.targetLon
         next.isMoving = false
-        next.waitTimer = 20 + Math.random() * 40
+        next.waitTimer = 8 + Math.random() * 20
+      }
+
+      // Water guard: snap grounded normies back to land if they drifted into ocean
+      if (next.travelState === 'grounded' && !isOnLandCached(next.lat, next.lon)) {
+        const landPos = getRandomLandLatLon(next.continentIndex)
+        if (landPos) {
+          next.lat = landPos.lat; next.lon = landPos.lon
+          next.targetLat = landPos.lat; next.targetLon = landPos.lon
+          next.isMoving = false; next.waitTimer = 2
+        }
       }
 
       nm.set(id, next)
     }
 
-    // ── soft collision avoidance + proximity conversations (skippable for perf)
-    if (!skipProximity) {
-      const arr = Array.from(nm.values())
-      for (let i = 0; i < arr.length; i++) {
-        for (let j = i + 1; j < arr.length; j++) {
-          const a = arr[i]; const b = arr[j]
-          if (a.travelState !== 'grounded' || b.travelState !== 'grounded') continue
-          if (a.inConversation || b.inConversation) continue
-          const d = angDeg(a.lat, a.lon, b.lat, b.lon)
-          if (d < 0.3 && d > 0) {
-            const push = 0.15
-            const dLat = a.lat - b.lat
-            const dLon = a.lon - b.lon
-            const len = Math.sqrt(dLat * dLat + dLon * dLon) || 0.001
-            const na = nm.get(a.id)!; const nb = nm.get(b.id)!
-            nm.set(a.id, { ...na, lat: na.lat + (dLat / len) * push, lon: na.lon + (dLon / len) * push })
-            nm.set(b.id, { ...nb, lat: nb.lat - (dLat / len) * push, lon: nb.lon - (dLon / len) * push })
-          }
-        }
+    // ── proximity conversations — grouped by continent, capped iterations ───────
+    if (!skipProximity && newConvs.length < MAX_CONVS) {
+      const free = Array.from(nm.values()).filter(n =>
+        !n.inConversation && n.travelState === 'grounded'
+      )
+
+      // Group by continent to avoid O(n_total²)
+      const byCont = new Map<number, typeof free>()
+      for (const n of free) {
+        if (!byCont.has(n.continentIndex)) byCont.set(n.continentIndex, [])
+        byCont.get(n.continentIndex)!.push(n)
       }
 
-      if (newConvs.length < MAX_CONVS) {
-        const free = Array.from(nm.values()).filter(n =>
-          !n.inConversation && n.travelState === 'grounded'
-        )
-        outer: for (let i = 0; i < free.length; i++) {
-          for (let j = i + 1; j < free.length; j++) {
-            if (newConvs.length >= MAX_CONVS) break outer
-            const a = nm.get(free[i].id)!; const b = nm.get(free[j].id)!
-            if (a.inConversation || b.inConversation) continue
+      let checks = 0
+      for (const group of byCont.values()) {
+        if (newConvs.length >= MAX_CONVS || checks >= MAX_PROX_CHECKS) break
+        for (let i = 0; i < group.length && checks < MAX_PROX_CHECKS; i++) {
+          for (let j = i + 1; j < group.length && checks < MAX_PROX_CHECKS && newConvs.length < MAX_CONVS; j++) {
+            checks++
+            const a = nm.get(group[i].id)!; const b = nm.get(group[j].id)!
+            if (!a || !b || a.inConversation || b.inConversation) continue
             if (angDeg(a.lat, a.lon, b.lat, b.lon) < PROXIMITY_DEG) {
               if (Math.random() < CONV_CHANCE * delta) {
                 const msgs = generateConversation(a, b)

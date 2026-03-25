@@ -20,7 +20,7 @@ const THE100_RGB: [number, number, number] = [1.00, 0.88, 0.00]  // gold for THE
 const MAX_POINTS = 10000
 
 export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: number) => void }) {
-  const { normies } = useWorldStore()
+  // Read normies via getState() in useFrame to avoid re-rendering this component on every tick
   const pointsRef = useRef<THREE.Points>(null)
 
   // Pre-allocated buffers
@@ -44,37 +44,43 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
   }), [])
 
   useFrame(() => {
-    const n = Math.min(normies.length, MAX_POINTS)
+    const { normies } = useWorldStore.getState()
+    const total = Math.min(normies.length, MAX_POINTS)
     const R = GLOBE_RADIUS + 0.25
 
-    for (let i = 0; i < n; i++) {
+    let count = 0
+    for (let i = 0; i < total; i++) {
       const nm = normies[i]
+      // Sleeping normies are invisible — skip them entirely for a clean terminator line
+      const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
+      if (sleeping) continue
+
       const phi   = (90 - nm.lat) * DEG2RAD
       const theta = (nm.lon + 180) * DEG2RAD
-      posArr[i * 3]     = -R * Math.sin(phi) * Math.cos(theta)
-      posArr[i * 3 + 1] =  R * Math.cos(phi)
-      posArr[i * 3 + 2] =  R * Math.sin(phi) * Math.sin(theta)
+      posArr[count * 3]     = -R * Math.sin(phi) * Math.cos(theta)
+      posArr[count * 3 + 1] =  R * Math.cos(phi)
+      posArr[count * 3 + 2] =  R * Math.sin(phi) * Math.sin(theta)
 
-      const sleeping = nm.type !== 'Alien' && isNighttime(nm.lon) && nm.travelState === 'grounded'
-      if (sleeping) {
-        colArr[i * 3]     = 0.25
-        colArr[i * 3 + 1] = 0.25
-        colArr[i * 3 + 2] = 0.30
+      let c: [number, number, number]
+      if (nm.travelState === 'flying') {
+        c = [1.00, 0.82, 0.10]  // golden-yellow for planes in flight
       } else {
-        const c = nm.isThe100 ? THE100_RGB : (TYPE_RGB[nm.type] ?? TYPE_RGB.Human)
-        colArr[i * 3]     = c[0]
-        colArr[i * 3 + 1] = c[1]
-        colArr[i * 3 + 2] = c[2]
+        c = nm.isThe100 ? THE100_RGB : (TYPE_RGB[nm.type] ?? TYPE_RGB.Human)
       }
+      colArr[count * 3]     = c[0]
+      colArr[count * 3 + 1] = c[1]
+      colArr[count * 3 + 2] = c[2]
+      count++
     }
 
     geometry.attributes.position.needsUpdate = true
     geometry.attributes.color.needsUpdate = true
-    geometry.setDrawRange(0, n)
+    geometry.setDrawRange(0, count)
   })
 
   // Click picking
   const handleClick = (e: THREE.Event & { point?: THREE.Vector3; stopPropagation?: () => void }) => {
+    const { normies } = useWorldStore.getState()
     if (!onClick || normies.length === 0) return
     if (e.stopPropagation) e.stopPropagation()
 
@@ -87,6 +93,9 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
 
     for (let i = 0; i < normies.length; i++) {
       const nm = normies[i]
+      // Can't click on sleeping normies — they aren't rendered
+      const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
+      if (sleeping) continue
       const phi = (90 - nm.lat) * DEG2RAD
       const theta = (nm.lon + 180) * DEG2RAD
       const px = -R * Math.sin(phi) * Math.cos(theta)

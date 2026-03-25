@@ -9,6 +9,8 @@ import NormiesLoader from './NormiesLoader'
 import BasementMarkers from './BasementMarkers'
 import CameraController from './CameraController'
 import SpaceEffects from './SpaceEffects'
+import SunLight from './SunLight'
+import FlightLayer from './FlightLayer'
 
 export default function WorldScene() {
   return (
@@ -20,8 +22,7 @@ export default function WorldScene() {
       >
         <color attach="background" args={['#000000']} />
 
-        <ambientLight intensity={0.5} color="#888888" />
-        <directionalLight position={[50, 30, 50]} intensity={1.0} color="#E2E5E4" />
+        <SunLight />
 
         <Stars radius={200} depth={50} count={3000} factor={2} saturation={0} fade />
 
@@ -29,6 +30,7 @@ export default function WorldScene() {
           <SpaceEffects />
           <Globe />
           <NormiesLayer />
+          <FlightLayer />
           <NormiesLoader />
           <BasementMarkers />
           <CameraController />

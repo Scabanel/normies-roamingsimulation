@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getCETTime, updateSunPosition, isNighttime } from '@/lib/daynight'
 import { useWorldStore } from '@/store/worldStore'
 
-// 5-row × 3-col pixel digit patterns (row-major)
+// 5-row × 3-col pixel digit patterns
 const DIGITS: Record<string, number[]> = {
   '0': [1,1,1, 1,0,1, 1,0,1, 1,0,1, 1,1,1],
   '1': [0,1,0, 1,1,0, 0,1,0, 0,1,0, 1,1,1],
@@ -17,36 +17,30 @@ const DIGITS: Record<string, number[]> = {
   '9': [1,1,1, 1,0,1, 1,1,1, 0,0,1, 1,1,1],
 }
 
-const PX_W = 2  // pixel block width (px)
-const PX_H = 3  // pixel block height (px)
-const PX_GAP = 1
-
-const ON_COLOR = '#E2E5E4'
-const OFF_COLOR = '#111111'
+const PX_W = 4
+const PX_H = 6
+const PX_GAP = 2
+const ON_COLOR = '#e5e7eb'
+const OFF_COLOR = '#1f2937'
+const DIM_COLOR = '#374151'
 
 function PixelDigit({ ch, dim }: { ch: string; dim?: boolean }) {
   const pattern = DIGITS[ch] ?? DIGITS['0']
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(3, ${PX_W}px)`, gap: `${PX_GAP}px` }}>
       {pattern.map((on, i) => (
-        <div
-          key={i}
-          style={{
-            width: PX_W,
-            height: PX_H,
-            background: on ? (dim ? '#484A4B' : ON_COLOR) : OFF_COLOR,
-          }}
-        />
+        <div key={i} style={{ width: PX_W, height: PX_H, background: on ? (dim ? DIM_COLOR : ON_COLOR) : OFF_COLOR, borderRadius: 1 }} />
       ))}
     </div>
   )
 }
 
 function PixelColon({ blink }: { blink: boolean }) {
+  const h = 5 * PX_H + 4 * PX_GAP
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', height: 5 * PX_H + 4 * PX_GAP, paddingTop: 3, paddingBottom: 3 }}>
-      <div style={{ width: PX_W, height: PX_H, background: blink ? ON_COLOR : OFF_COLOR }} />
-      <div style={{ width: PX_W, height: PX_H, background: blink ? ON_COLOR : OFF_COLOR }} />
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', height: h, paddingTop: 4, paddingBottom: 4 }}>
+      <div style={{ width: PX_W, height: PX_H, background: blink ? ON_COLOR : OFF_COLOR, borderRadius: 1 }} />
+      <div style={{ width: PX_W, height: PX_H, background: blink ? ON_COLOR : OFF_COLOR, borderRadius: 1 }} />
     </div>
   )
 }
@@ -75,14 +69,25 @@ export default function DayNightClock() {
 
   const total = normies.length
   const asleep = mounted && total > 0
-    ? normies.filter(n => n.type !== 'Alien' && isNighttime(n.lon)).length
+    ? normies.filter(n => n.type !== 'Alien' && isNighttime(n.lat, n.lon)).length
     : 0
   const awake = total - asleep
 
   return (
-    <div className="absolute bottom-4 right-4 z-10 bg-black/85 border border-gray-900 rounded p-3">
-      {/* Pixel time display */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: PX_GAP * 3 }}>
+    <div style={{
+      position: 'fixed',
+      bottom: 24,
+      right: 24,
+      zIndex: 20,
+      background: '#111827',
+      border: '1px solid #374151',
+      borderRadius: 8,
+      padding: '14px 18px',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+      minWidth: 120,
+    }}>
+      {/* Pixel time */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: PX_GAP * 2 }}>
         {mounted ? (
           <>
             <PixelDigit ch={hh[0]} />
@@ -102,23 +107,23 @@ export default function DayNightClock() {
         )}
       </div>
 
-      {/* CET label */}
-      <div className="font-mono text-[7px] text-[#484A4B] uppercase tracking-widest mt-1.5 text-center">
+      {/* Label */}
+      <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#4b5563', letterSpacing: '0.15em', textTransform: 'uppercase', textAlign: 'center', marginTop: 6 }}>
         {mounted ? `CET${t.isDST ? '+2' : '+1'}` : 'CET'}
       </div>
 
-      {/* Awake / asleep */}
+      {/* Awake/Sleeping */}
       {mounted && total > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-900 space-y-0.5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1 h-1 bg-yellow-600 rounded-sm" />
-            <span className="font-mono text-[8px] text-gray-700">Awake</span>
-            <span className="font-mono text-[8px] text-[#484A4B] ml-auto tabular-nums">{awake.toLocaleString()}</span>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #1f2937' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <div style={{ width: 6, height: 6, background: '#ca8a04', borderRadius: 2, flexShrink: 0 }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#9ca3af', flex: 1 }}>Awake</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{awake.toLocaleString()}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-1 h-1 bg-gray-800 rounded-sm" />
-            <span className="font-mono text-[8px] text-gray-800">Sleeping</span>
-            <span className="font-mono text-[8px] text-gray-800 ml-auto tabular-nums">{asleep.toLocaleString()}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 6, height: 6, background: '#374151', borderRadius: 2, flexShrink: 0 }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#4b5563', flex: 1 }}>Sleeping</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>{asleep.toLocaleString()}</span>
           </div>
         </div>
       )}

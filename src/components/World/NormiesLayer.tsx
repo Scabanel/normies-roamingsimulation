@@ -8,12 +8,13 @@ import NormieSprite from './NormieSprite'
 import NormiesPointsCloud from './NormiesPointsCloud'
 import type { NormieState } from '@/store/worldStore'
 
-const SPRITE_DISTANCE = 23  // Only show sprites when very close to surface
-const MAX_SPRITES     = 4   // Central normie + 3 nearest neighbours
+const SPRITE_DISTANCE  = 34  // Show sprites when moderately zoomed in
+const MAX_SPRITES      = 8   // Central normie + up to 7 visible around it
+const MIN_SPRITE_SEP   = 2.5 // Min angular degrees between any two sprites (prevents overlap)
 const DEG2RAD = Math.PI / 180
-const LOD_REFRESH = 15      // recalculate visible set every N frames
-const SIM_EVERY   = 2       // tick simulation every N frames
-const PROX_EVERY  = 120     // proximity/collision check every N frames
+const LOD_REFRESH = 20      // recalculate visible set every N frames
+const SIM_EVERY   = 5       // tick simulation every N frames (lower = faster but more CPU)
+const PROX_EVERY  = 200     // proximity check every N frames
 
 function sphereVec(lat: number, lon: number): [number, number, number] {
   const phi   = (90 - lat) * DEG2RAD
@@ -83,15 +84,26 @@ export default function NormiesLayer() {
 
       if (!centerNormie) { setSpriteMode(false); return }
 
-      // 3 nearest neighbours by angular distance to center normie
-      const neighbours = normies
-        .filter(n => n.id !== centerNormie!.id)
-        .map(n => ({ n, d: angDeg(n.lat, n.lon, centerNormie!.lat, centerNormie!.lon) }))
-        .sort((a, b) => a.d - b.d)
-        .slice(0, MAX_SPRITES - 1)
-        .map(x => x.n)
+      // When a normie is explicitly selected, show only that one.
+      // Otherwise (free-roam zoom) show up to MAX_SPRITES spread-out neighbours.
+      const hasExplicitSelection = followedNormieId !== null || focusedNormieId !== null
 
-      setBatch([centerNormie, ...neighbours])
+      if (hasExplicitSelection) {
+        setBatch([centerNormie])
+      } else {
+        const candidates = normies
+          .filter(n => n.id !== centerNormie!.id)
+          .map(n => ({ n, d: angDeg(n.lat, n.lon, centerNormie!.lat, centerNormie!.lon) }))
+          .sort((a, b) => a.d - b.d)
+
+        const selected: typeof normies = [centerNormie!]
+        for (const { n } of candidates) {
+          if (selected.length >= MAX_SPRITES) break
+          const tooClose = selected.some(s => angDeg(s.lat, s.lon, n.lat, n.lon) < MIN_SPRITE_SEP)
+          if (!tooClose) selected.push(n)
+        }
+        setBatch(selected)
+      }
     } else {
       setBatch([])
     }
@@ -103,8 +115,8 @@ export default function NormiesLayer() {
 
   return (
     <group>
-      {/* Always render the fast points cloud (macro view) */}
-      <NormiesPointsCloud onClick={(id) => setFollowedNormieId(id)} />
+      {/* Points cloud — clicks only enabled when zoomed in to avoid accidental selection while rotating */}
+      <NormiesPointsCloud onClick={spriteMode ? (id) => setFollowedNormieId(id) : undefined} />
       {/* Render up to 4 sprites only when very zoomed in */}
       {spriteMode && batch.map(normie => (
         <NormieSprite key={normie.id} normie={normie} />

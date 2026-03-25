@@ -227,6 +227,7 @@ export const CONTINENT_LATLON_BOUNDS: ContinentLatLonBounds[] = [
   { name: 'Africa', minLat: -38, maxLat: 38, minLon: -18, maxLon: 53, weight: 20 },
   { name: 'Russia', minLat: 50, maxLat: 77, minLon: 32, maxLon: 180, weight: 5 },
   { name: 'Middle East', minLat: 12, maxLat: 42, minLon: 26, maxLon: 63, weight: 10 },
+  { name: 'Central Asia', minLat: 35, maxLat: 55, minLon: 45, maxLon: 100, weight: 8 },
   { name: 'South Asia', minLat: 5, maxLat: 38, minLon: 60, maxLon: 97, weight: 15 },
   { name: 'East Asia', minLat: 18, maxLat: 55, minLon: 100, maxLon: 148, weight: 20 },
   { name: 'SE Asia', minLat: -10, maxLat: 25, minLon: 91, maxLon: 142, weight: 10 },
@@ -326,6 +327,15 @@ export const BASEMENT_STATIONS: BasementStation[] = [
   { id: 13, name: 'Seoul Subway', lat: 37.6, lon: 127.0, continent: 'East Asia' },
   { id: 14, name: 'Sydney Tunnels', lat: -33.9, lon: 151.2, continent: 'Australia' },
 ]
+
+/**
+ * Check if a lat/lon is on land, using the high-res cached mask when available,
+ * falling back to the coarse 120×60 grid. Safe to call from the simulation tick.
+ */
+export function isOnLandCached(lat: number, lon: number): boolean {
+  if (_cachedMask) return isOnLand(lat, lon, _cachedMask)
+  return isLandAtLatLon(lat, lon)
+}
 
 /** Find the nearest basement station to a given lat/lon */
 export function findNearestBasement(lat: number, lon: number): BasementStation {

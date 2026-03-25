@@ -6,10 +6,24 @@ export default function EscHint() {
   if (followedNormieId === null) return null
 
   return (
-    <div className="absolute top-12 left-4 z-10 pointer-events-none">
-      <span className="font-mono text-[9px] text-[#484A4B] tracking-[0.12em] uppercase animate-pulse">
-        Press ESC · Give your Normie some alone time
-      </span>
+    <div style={{
+      position: 'fixed',
+      top: 64,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 20,
+      background: 'rgba(0,0,0,0.75)',
+      border: '1px solid #374151',
+      borderRadius: 6,
+      padding: '6px 16px',
+      fontFamily: 'monospace',
+      fontSize: 11,
+      color: '#9ca3af',
+      letterSpacing: '0.08em',
+      pointerEvents: 'none',
+      animation: 'pulse 2s infinite',
+    }}>
+      Press ESC · Give your Normie some alone time
     </div>
   )
 }

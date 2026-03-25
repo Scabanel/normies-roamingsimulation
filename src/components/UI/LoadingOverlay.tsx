@@ -1,20 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWorldStore } from '@/store/worldStore'
 
 const PIXEL_BLOCKS = 48
+
+const MIN_DISPLAY_MS = 2000
 
 export default function LoadingOverlay() {
   const { isLoading, loadingProgress, totalNormiesCount, fetchedCount } = useWorldStore()
   const [visible, setVisible] = useState(true)
   const [fading, setFading] = useState(false)
+  const mountedAt = useRef(Date.now())
 
   useEffect(() => {
     if (!isLoading) {
-      setFading(true)
-      const t = setTimeout(() => setVisible(false), 800)
-      return () => clearTimeout(t)
+      const elapsed = Date.now() - mountedAt.current
+      const delay = Math.max(0, MIN_DISPLAY_MS - elapsed)
+      const t1 = setTimeout(() => {
+        setFading(true)
+        const t2 = setTimeout(() => setVisible(false), 800)
+        return () => clearTimeout(t2)
+      }, delay)
+      return () => clearTimeout(t1)
     }
   }, [isLoading])
 

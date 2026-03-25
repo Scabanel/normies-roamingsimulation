@@ -6,14 +6,15 @@ import { latLonToVec3 } from './NormieSprite'
 import { GLOBE_RADIUS } from './Globe'
 import * as THREE from 'three'
 
+const FOLLOW_DIST = GLOBE_RADIUS + 6  // camera distance from globe center when zoomed in
+
 export default function CameraController() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { controls, camera } = useThree() as any
   const { normies, focusedNormieId, followedNormieId } = useWorldStore()
-  const targetRef = useRef(new THREE.Vector3(0, 0, 0))
   const flyToRef = useRef<{ startPos: THREE.Vector3; endPos: THREE.Vector3; t: number } | null>(null)
 
-  // Fly-to when followedNormieId changes
+  // Fly-to when followedNormieId or focusedNormieId changes
   useEffect(() => {
     const id = followedNormieId ?? focusedNormieId
     if (id === null) return
@@ -21,9 +22,8 @@ export default function CameraController() {
     if (!normie) return
 
     const surfacePos = latLonToVec3(normie.lat, normie.lon, GLOBE_RADIUS)
-    const normal = surfacePos.clone().normalize()
-    // End position: 6 units above surface (radius 26 from center)
-    const endPos = surfacePos.clone().addScaledVector(normal, 6)
+    // Place camera along the outward normal — target stays at [0,0,0]
+    const endPos = surfacePos.clone().normalize().multiplyScalar(FOLLOW_DIST)
 
     flyToRef.current = {
       startPos: camera.position.clone(),
@@ -34,33 +34,18 @@ export default function CameraController() {
   }, [followedNormieId, focusedNormieId])
 
   useFrame(() => {
-    // Fly-to animation
-    if (flyToRef.current) {
-      const fly = flyToRef.current
-      fly.t = Math.min(fly.t + 0.02, 1)
-      const ease = fly.t * fly.t * (3 - 2 * fly.t)
-      camera.position.lerpVectors(fly.startPos, fly.endPos, ease)
-      camera.lookAt(0, 0, 0)
-      if (fly.t >= 1) flyToRef.current = null
-      return
+    if (!flyToRef.current) return
+    const fly = flyToRef.current
+    fly.t = Math.min(fly.t + 0.025, 1)
+    const ease = fly.t * fly.t * (3 - 2 * fly.t)
+    camera.position.lerpVectors(fly.startPos, fly.endPos, ease)
+    camera.lookAt(0, 0, 0)
+    if (controls) {
+      // Keep OrbitControls synced — target always stays at globe center
+      controls.target.set(0, 0, 0)
+      controls.update()
     }
-
-    // Continuous follow for followedNormieId
-    if (!controls || followedNormieId === null) return
-    const normie = normies.find(n => n.id === followedNormieId)
-    if (!normie) return
-
-    const surfacePos = latLonToVec3(normie.lat, normie.lon, GLOBE_RADIUS)
-    targetRef.current.lerp(surfacePos, 0.04)
-    controls.target.copy(targetRef.current)
-
-    // Keep camera within ~26 units of globe center
-    const distFromCenter = camera.position.length()
-    if (distFromCenter > 27) {
-      camera.position.multiplyScalar(26 / distFromCenter)
-    }
-
-    controls.update()
+    if (fly.t >= 1) flyToRef.current = null
   })
 
   return null
