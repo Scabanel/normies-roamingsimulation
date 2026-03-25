@@ -79,7 +79,7 @@ export default function CollectionPage() {
       if (!isNaN(id)) list = list.filter(n => n.id === id)
       else list = list.filter(n => n.name.toLowerCase().includes(q.toLowerCase()))
     }
-    return list
+    return list.sort((a, b) => a.id - b.id)
   }, [normies, typeFilter, traitType, traitValue, search])
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE)

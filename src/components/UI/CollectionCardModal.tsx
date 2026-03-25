@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getOpenseaUrl } from '@/lib/normieApi'
 import type { NormieMetadata } from '@/lib/normieApi'
 
@@ -44,23 +44,57 @@ function IconOpenSea() {
   )
 }
 
+function useSlabTilt() {
+  const slabRef = useRef<HTMLDivElement>(null)
+  const [isHovered, setIsHovered] = useState(false)
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = slabRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setMouse({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height })
+  }
+  const onMouseEnter = () => setIsHovered(true)
+  const onMouseLeave = () => { setIsHovered(false); setMouse({ x: 0.5, y: 0.5 }) }
+
+  const rotateX = isHovered ? (mouse.y - 0.5) * -14 : 0
+  const rotateY = isHovered ? (mouse.x - 0.5) *  14 : 0
+  const sa      = isHovered ? 1 : 0.6
+  const slabAng = 140 + rotateY * 3.5 - rotateX * 1.5
+  const holoAng = 115 + mouse.x * 40
+  const holoOff = mouse.y * 30
+
+  const slabGlass = `linear-gradient(${slabAng}deg,
+    rgba(255,255,255,${0.75*sa}) 0%,
+    rgba(220,220,240,${0.28*sa}) 18%,
+    rgba(255,255,255,${0.06*sa}) 42%,
+    rgba(200,210,230,${0.18*sa}) 62%,
+    rgba(255,255,255,${0.04*sa}) 78%,
+    rgba(255,255,255,${0.60*sa}) 100%)`
+
+  return { slabRef, isHovered, mouse, onMouseMove, onMouseEnter, onMouseLeave,
+           rotateX, rotateY, sa, slabAng, holoAng, holoOff, slabGlass }
+}
+
 interface Props {
   normie: NormieMetadata
   onClose: () => void
 }
 
-async function downloadCardAsPng(n: NormieMetadata, accent: string) {
+async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: HolderInfo | null) {
   const CARD_W = 340
   const TRAIT_H = 28
   const HEADER_H = 64
   const IMG_H = 340
   const FOOTER_H = 30
-  const OPENSEA_H = 44
+  const HOLDER_H = 52
   const TRAITS_PAD = 16
   const traitsH = n.attributes.length > 0
     ? TRAITS_PAD + n.attributes.length * (TRAIT_H + 3) + TRAITS_PAD
     : 0
-  const CARD_H = HEADER_H + IMG_H + traitsH + OPENSEA_H + FOOTER_H
+  // Layout order: Header → Image → Holder → Traits → Footer
+  const CARD_H = HEADER_H + IMG_H + HOLDER_H + traitsH + FOOTER_H
 
   const canvas = document.createElement('canvas')
   const dpr = 2
@@ -69,13 +103,9 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string) {
   const ctx = canvas.getContext('2d')!
   ctx.scale(dpr, dpr)
 
-  // Background
+  // Uniform background — no darker header/footer to avoid metallic frame look
   ctx.fillStyle = '#131315'
   ctx.fillRect(0, 0, CARD_W, CARD_H)
-
-  // Header bg
-  ctx.fillStyle = '#0c0c0e'
-  ctx.fillRect(0, 0, CARD_W, HEADER_H)
 
   // Accent bottom border on header
   ctx.fillStyle = accent
@@ -128,8 +158,44 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string) {
     ctx.textAlign = 'left'
   }
 
-  // Traits
-  let y = HEADER_H + IMG_H + TRAITS_PAD
+  // Holder — right after image, before traits
+  const holderY = HEADER_H + IMG_H
+  ctx.fillStyle = 'rgba(255,255,255,0.03)'
+  ctx.fillRect(0, holderY, CARD_W, HOLDER_H)
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+  ctx.beginPath()
+  ctx.moveTo(0, holderY)
+  ctx.lineTo(CARD_W, holderY)
+  ctx.stroke()
+
+  ctx.textAlign = 'left'
+  ctx.font = '9px monospace'
+  ctx.fillStyle = '#666666'
+  ctx.fillText('HOLDER', 12, holderY + 14)
+
+  if (!holderInfo || !holderInfo.holder) {
+    ctx.font = '11px monospace'
+    ctx.fillStyle = '#444444'
+    ctx.fillText('none', 12, holderY + 32)
+  } else {
+    const mainLabel = holderInfo.displayName || truncate(holderInfo.holder)
+    ctx.font = '11px monospace'
+    ctx.fillStyle = '#dddddd'
+    ctx.fillText(mainLabel, 12, holderY + 32)
+
+    if (holderInfo.twitterHandle) {
+      ctx.font = '10px monospace'
+      ctx.fillStyle = '#1d9bf0'
+      ctx.fillText(`@${holderInfo.twitterHandle}`, 12, holderY + 46)
+    } else if (holderInfo.displayName) {
+      ctx.font = '9px monospace'
+      ctx.fillStyle = '#555555'
+      ctx.fillText(truncate(holderInfo.holder), 12, holderY + 46)
+    }
+  }
+
+  // Traits — after holder
+  let y = HEADER_H + IMG_H + HOLDER_H + TRAITS_PAD
   if (n.attributes.length > 0) {
     ctx.font = '9px monospace'
     ctx.fillStyle = '#777777'
@@ -155,26 +221,9 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string) {
     }
   }
 
-  // OpenSea strip
-  const osY = CARD_H - FOOTER_H - OPENSEA_H
-  ctx.fillStyle = '#1c1c1e'
-  ctx.fillRect(0, osY, CARD_W, OPENSEA_H)
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
-  ctx.beginPath()
-  ctx.moveTo(0, osY)
-  ctx.lineTo(CARD_W, osY)
-  ctx.stroke()
-  ctx.font = '11px monospace'
-  ctx.fillStyle = '#999999'
-  ctx.textAlign = 'center'
-  ctx.fillText('VIEW ON OPENSEA', CARD_W / 2, osY + 26)
-  ctx.textAlign = 'left'
-
-  // Footer strip
+  // Footer — same background, just a separator line
   const footY = CARD_H - FOOTER_H
-  ctx.fillStyle = '#0c0c0e'
-  ctx.fillRect(0, footY, CARD_W, FOOTER_H)
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'
   ctx.beginPath()
   ctx.moveTo(0, footY)
   ctx.lineTo(CARD_W, footY)
@@ -197,6 +246,7 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
   const normieNum = String(n.id).padStart(4, '0')
   const [holderInfo, setHolderInfo]       = useState<HolderInfo | null>(null)
   const [holderLoading, setHolderLoading] = useState(true)
+  const tilt = useSlabTilt()
 
   useEffect(() => {
     setHolderLoading(true)
@@ -204,15 +254,16 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
   }, [n.id])
 
   const handleDownload = useCallback(() => {
-    downloadCardAsPng(n, accent)
-  }, [n, accent])
+    downloadCardAsPng(n, accent, holderInfo)
+  }, [n, accent, holderInfo])
 
-  const photoGlass = `linear-gradient(160deg,
-    rgba(255,255,255,0.45) 0%,
-    rgba(${rgb},0.25) 25%,
-    rgba(255,255,255,0.04) 52%,
-    rgba(${rgb},0.15) 74%,
-    rgba(255,255,255,0.35) 100%)`
+  const photoAng = tilt.slabAng + 60
+  const photoGlass = `linear-gradient(${photoAng}deg,
+    rgba(255,255,255,${0.45*tilt.sa}) 0%,
+    rgba(${rgb},${0.25*tilt.sa}) 25%,
+    rgba(255,255,255,${0.04*tilt.sa}) 52%,
+    rgba(${rgb},${0.15*tilt.sa}) 74%,
+    rgba(255,255,255,${0.35*tilt.sa}) 100%)`
 
   return (
     <div
@@ -223,15 +274,29 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
         background: 'rgba(0,0,0,0.65)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20,
+        perspective: 900,
       }}
     >
-      <div onClick={e => e.stopPropagation()} style={{
-        width: 'min(340px, 100%)',
-        maxHeight: 'calc(100dvh - 40px)',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: `0 24px 60px rgba(0,0,0,0.85), 0 0 40px rgba(${rgb},0.10)`,
-        border: `1px solid rgba(${rgb},0.30)`,
-      }}>
+      <div
+        ref={tilt.slabRef}
+        onClick={e => e.stopPropagation()}
+        onMouseMove={tilt.onMouseMove}
+        onMouseEnter={tilt.onMouseEnter}
+        onMouseLeave={tilt.onMouseLeave}
+        style={{
+          width: 'min(340px, 100%)',
+          maxHeight: 'calc(100dvh - 40px)',
+          display: 'flex', flexDirection: 'column',
+          padding: '2px',
+          background: tilt.slabGlass,
+          boxShadow: tilt.isHovered
+            ? `0 28px 70px rgba(0,0,0,0.9), 0 0 50px rgba(${rgb},0.15)`
+            : `0 24px 60px rgba(0,0,0,0.85), 0 0 40px rgba(${rgb},0.10)`,
+          border: `1px solid rgba(${rgb},0.30)`,
+          transform: `perspective(900px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(${tilt.isHovered ? 6 : 0}px)`,
+          transition: tilt.isHovered ? 'transform 0.07s ease-out, box-shadow 0.3s' : 'transform 0.55s ease, box-shadow 0.55s',
+        }}
+      >
         <div style={{ background: '#131315', display: 'flex', flexDirection: 'column', fontFamily: 'monospace', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
           {/* Header */}
@@ -251,9 +316,13 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
             </div>
           </div>
 
-          {/* Portrait */}
-          <div style={{ padding: '10px 10px 0', flexShrink: 0 }}>
-            <div style={{ padding: '2px', background: photoGlass, boxShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
+          {/* Portrait with holo/glare */}
+          <div style={{ padding: '10px 10px 0', flexShrink: 0, position: 'relative' }}>
+            {/* Holo overlay */}
+            <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 0.5 : 0, transition: 'opacity 0.35s', background: `linear-gradient(${tilt.holoAng}deg, transparent 0%, rgba(255,50,90,0.24) ${15+tilt.holoOff}%, rgba(255,190,50,0.24) ${28+tilt.holoOff}%, rgba(50,255,140,0.24) ${42+tilt.holoOff}%, rgba(50,140,255,0.24) ${56+tilt.holoOff}%, rgba(180,50,255,0.24) ${70+tilt.holoOff}%, transparent 100%)`, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 2 }} />
+            {/* Glare overlay */}
+            <div style={{ position: 'absolute', inset: 0, opacity: tilt.isHovered ? 1 : 0, transition: 'opacity 0.35s', background: `radial-gradient(ellipse at ${tilt.mouse.x*100}% ${tilt.mouse.y*100}%, rgba(255,255,255,0.14) 0%, transparent 60%)`, pointerEvents: 'none', zIndex: 3 }} />
+            <div style={{ padding: '2px', background: photoGlass, boxShadow: '0 2px 12px rgba(0,0,0,0.5)', position: 'relative', zIndex: 1 }}>
               <div style={{ width: '100%', aspectRatio: '1', background: '#222', overflow: 'hidden', position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={n.imageUrl} alt={n.name}
@@ -261,21 +330,6 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
               </div>
             </div>
           </div>
-
-          {/* Traits */}
-          {n.attributes.length > 0 && (
-            <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', overflow: 'auto', flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Traits</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {n.attributes.map((attr, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                    <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{attr.trait_type}</span>
-                    <span style={{ fontSize: 11, color: '#eee', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{attr.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Holder */}
           <div style={{ padding: '6px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
@@ -300,6 +354,21 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
                   </div>
             }
           </div>
+
+          {/* Traits */}
+          {n.attributes.length > 0 && (
+            <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', overflow: 'auto', flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Traits</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {n.attributes.map((attr, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                    <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{attr.trait_type}</span>
+                    <span style={{ fontSize: 11, color: '#eee', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{attr.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div style={{ padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: '#1c1c1e', display: 'flex', gap: 6 }}>
