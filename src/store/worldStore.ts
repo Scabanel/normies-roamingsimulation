@@ -263,8 +263,8 @@ export const useWorldStore = create<WorldStore>((set) => ({
     for (const [id, n] of nm) {
       let next = { ...n }
 
-      // Sleeping normies are completely immobile — Aliens never sleep
-      if (next.type !== 'Alien' && isNighttime(next.lat, next.lon) && next.travelState === 'grounded' && !next.inConversation) {
+      // Sleeping normies are completely immobile — Aliens and THE100 never sleep
+      if (next.type !== 'Alien' && !next.isThe100 && isNighttime(next.lat, next.lon) && next.travelState === 'grounded' && !next.inConversation) {
         next.isTalking = false
         next.isMoving = false
         nm.set(id, next)

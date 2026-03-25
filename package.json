@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cp node_modules/world-atlas/countries-110m.json public/world-110m.json && (tsx scripts/export-static.ts || true) && next build",
+    "build": "cp node_modules/world-atlas/countries-110m.json public/world-110m.json && tsx scripts/write-build-info.ts && (tsx scripts/export-static.ts || true) && next build",
     "start": "next start",
     "lint": "eslint",
     "index": "tsx scripts/index-normies.ts",

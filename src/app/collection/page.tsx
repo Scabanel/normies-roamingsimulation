@@ -17,8 +17,35 @@ const TYPES = ['All', 'Human', 'Alien', 'Cat', 'Agent']
 const PER_PAGE = 120
 
 export default function CollectionPage() {
-  const [normies,     setNormies]     = useState<NormieMetadata[]>([])
-  const [loading,     setLoading]     = useState(true)
+  const [normies,    setNormies]    = useState<NormieMetadata[]>([])
+  const [loading,    setLoading]    = useState(true)
+
+  useEffect(() => {
+    // 1. Session cache — written by NormiesLoader when the planet loads
+    //    Same key used by NormiesLoader: normies_v2_<UTC day seed>
+    const DAY_SEED = Math.floor(Date.now() / 86400000)
+    const CACHE_KEY = `normies_v2_${DAY_SEED}`
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY)
+      if (raw) {
+        const cached = JSON.parse(raw)
+        if (Array.isArray(cached) && cached.length > 0) {
+          setNormies(cached)
+          setLoading(false)
+          return
+        }
+      }
+    } catch { /* sessionStorage unavailable */ }
+
+    // 2. Static CDN file (generated at build time)
+    fetch('/normies-static.json')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      // 3. API route (server-side DB)
+      .catch(() => fetch('/api/normies').then(r => r.ok ? r.json() : Promise.reject()))
+      .then((data: unknown) => { setNormies(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
   const [typeFilter,  setTypeFilter]  = useState('All')
   const [the100Only,  setThe100Only]  = useState(false)
   const [traitType,   setTraitType]   = useState('')
@@ -26,14 +53,6 @@ export default function CollectionPage() {
   const [search,      setSearch]      = useState('')
   const [page,        setPage]        = useState(1)
   const [modal,       setModal]       = useState<NormieMetadata | null>(null)
-
-  useEffect(() => {
-    fetch('/normies-static.json')
-      .catch(() => null)
-      .then(r => r?.ok ? r.json() : fetch('/api/normies').then(r2 => r2.json()))
-      .then((data: NormieMetadata[]) => { setNormies(data); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
 
   // Derive available trait types + values from data
   const traitTypes = useMemo(() => {
@@ -111,7 +130,7 @@ export default function CollectionPage() {
               The Collection
             </h1>
             <p style={{ fontSize: 15, color: '#bbb', lineHeight: 1.8 }}>
-              {loading ? 'Loading…' : `${normies.length.toLocaleString()} Normies on the planet`}
+              {normies.length === 0 ? 'Loading…' : `${normies.length.toLocaleString()} Normies${isLoading ? '…' : ' on the planet'}`}
             </p>
           </div>
         </section>

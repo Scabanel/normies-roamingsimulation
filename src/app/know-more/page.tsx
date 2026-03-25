@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import NormieWall from '@/components/UI/NormieWall'
 import TweetEmbed from '@/components/UI/TweetEmbed'
+import NormieCardPreview from '@/components/UI/NormieCardPreview'
 
 const SYS_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"'
 
@@ -169,12 +170,21 @@ export default function KnowMorePage() {
           <Row>
             <ColLabel>04 | Rarity</ColLabel>
             <ColContent>
-              <h2 style={H2}>THE100</h2>
+              <h2 style={H2}>THE100 — They never sleep.</h2>
               <p style={P}>
-                The rarest Normies, flagged THE100, are surrounded by a gold luminous aura, loaded first, and always visible in the crowd. Their pixel keeps the color of their type (blue, purple, orange or red) so you can still tell what they are at a glance.
+                The rarest Normies in existence. Flagged THE100, they are surrounded by a gold luminous square aura — always burning, always visible, even in the darkest night.
               </p>
-              <div style={{ marginTop: 24, display: 'inline-block', padding: '12px 20px', border: '1px solid #d4a800', borderRadius: 4, background: 'rgba(212,168,0,0.08)' }}>
-                <span style={{ fontSize: 13, color: '#ffd700', letterSpacing: '0.12em', fontWeight: 700 }}>★ THE100</span>
+              <p style={{ ...P, marginTop: 16 }}>
+                While regular Normies rest when night falls at their location, THE100 never stop. They roam through the darkness, building, scheming, outpacing everyone else. The planet never truly sleeps as long as they&apos;re on it.
+              </p>
+              <p style={{ ...P, marginTop: 16 }}>
+                On the globe, their square gold light cuts through the dark side of the Earth. You can always find them. You can never ignore them.
+              </p>
+              <div style={{ marginTop: 28, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-block', padding: '12px 20px', border: '1px solid #d4a800', borderRadius: 4, background: 'rgba(212,168,0,0.08)' }}>
+                  <span style={{ fontSize: 13, color: '#ffd700', letterSpacing: '0.12em', fontWeight: 700 }}>★ THE100</span>
+                </div>
+                <span style={{ fontSize: 13, color: '#666' }}>Active 24/7 · Always awake · Square gold aura</span>
               </div>
             </ColContent>
           </Row>
@@ -237,7 +247,37 @@ export default function KnowMorePage() {
           <Divider />
 
           <Row>
-            <ColLabel>07 | Who Am I?</ColLabel>
+            <ColLabel>07 | Collectibles</ColLabel>
+            <ColContent>
+              <h2 style={H2}>Your Normie. As a card.</h2>
+              <p style={P}>
+                Every Normie has a collectible card — on-chain traits, pixel portrait, type accent. Click any Normie in the collection to open it.
+              </p>
+              <div style={{ marginTop: 32, display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+                <NormieCardPreview normieId={9772} />
+
+                <div style={{ flex: 1, minWidth: 200, paddingTop: 8 }}>
+                  <p style={P}>
+                    Each card shows the real on-chain traits of the Normie, its type accent color, and a link to OpenSea. From the collection page, you can also download any card as a PNG.
+                  </p>
+                  <p style={{ ...P, marginTop: 16 }}>
+                    This is just the beginning of what a collectible can be in this universe. Physical objects, limited prints, dynamic cards that reflect the Normie&apos;s live position — all possibilities.
+                  </p>
+                  <div style={{ marginTop: 20 }}>
+                    <a href="/collection" style={{ display: 'inline-block', fontSize: 12, color: '#9ca3af', textDecoration: 'none', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '10px 18px', border: '1px solid #374151', borderRadius: 4 }}>
+                      Browse the collection →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </ColContent>
+          </Row>
+
+          <Divider />
+
+          <Row>
+            <ColLabel>08 | Who Am I?</ColLabel>
             <ColContent>
               <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 {/* Normie card */}

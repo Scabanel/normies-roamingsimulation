@@ -1,4 +1,5 @@
 'use client'
+import { useCallback } from 'react'
 import { getOpenseaUrl } from '@/lib/normieApi'
 import type { NormieMetadata } from '@/lib/normieApi'
 
@@ -25,10 +26,156 @@ interface Props {
   onClose: () => void
 }
 
+async function downloadCardAsPng(n: NormieMetadata, accent: string) {
+  const CARD_W = 340
+  const TRAIT_H = 28
+  const HEADER_H = 64
+  const IMG_H = 340
+  const FOOTER_H = 30
+  const OPENSEA_H = 44
+  const TRAITS_PAD = 16
+  const traitsH = n.attributes.length > 0
+    ? TRAITS_PAD + n.attributes.length * (TRAIT_H + 3) + TRAITS_PAD
+    : 0
+  const CARD_H = HEADER_H + IMG_H + traitsH + OPENSEA_H + FOOTER_H
+
+  const canvas = document.createElement('canvas')
+  const dpr = 2
+  canvas.width  = CARD_W * dpr
+  canvas.height = CARD_H * dpr
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(dpr, dpr)
+
+  // Background
+  ctx.fillStyle = '#131315'
+  ctx.fillRect(0, 0, CARD_W, CARD_H)
+
+  // Header bg
+  ctx.fillStyle = '#0c0c0e'
+  ctx.fillRect(0, 0, CARD_W, HEADER_H)
+
+  // Accent bottom border on header
+  ctx.fillStyle = accent
+  ctx.fillRect(0, HEADER_H - 2, CARD_W, 2)
+
+  // Header text
+  ctx.font = 'bold 13px monospace'
+  ctx.fillStyle = accent
+  ctx.fillText('N', 12, 22)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText('ORMIES', 12 + ctx.measureText('N').width, 22)
+
+  ctx.font = '11px monospace'
+  ctx.fillStyle = '#666666'
+  const numText = `#${String(n.id).padStart(4, '0')}`
+  ctx.fillText(numText, CARD_W - 12 - ctx.measureText(numText).width, 22)
+
+  ctx.font = 'bold 13px monospace'
+  ctx.fillStyle = '#eeeeee'
+  ctx.fillText(n.name.toUpperCase(), 12, 50)
+
+  const typeLabel = n.isThe100 ? '★ THE100' : n.type.toUpperCase()
+  ctx.font = '11px monospace'
+  ctx.fillStyle = accent
+  ctx.fillText(typeLabel, CARD_W - 12 - ctx.measureText(typeLabel).width, 50)
+
+  // Portrait — load image with crossOrigin
+  const imgY = HEADER_H
+  ctx.fillStyle = '#222222'
+  ctx.fillRect(0, imgY, CARD_W, IMG_H)
+
+  try {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = n.imageUrl
+    })
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(img, 0, imgY, CARD_W, IMG_H)
+  } catch {
+    // CORS blocked — draw placeholder
+    ctx.fillStyle = '#333333'
+    ctx.fillRect(0, imgY, CARD_W, IMG_H)
+    ctx.fillStyle = '#555555'
+    ctx.font = '13px monospace'
+    ctx.textAlign = 'center'
+    ctx.fillText('Image unavailable (CORS)', CARD_W / 2, imgY + IMG_H / 2)
+    ctx.textAlign = 'left'
+  }
+
+  // Traits
+  let y = HEADER_H + IMG_H + TRAITS_PAD
+  if (n.attributes.length > 0) {
+    ctx.font = '9px monospace'
+    ctx.fillStyle = '#777777'
+    ctx.fillText('TRAITS', 12, y + 4)
+    y += 16
+
+    for (const attr of n.attributes) {
+      ctx.fillStyle = 'rgba(255,255,255,0.03)'
+      ctx.fillRect(8, y, CARD_W - 16, TRAIT_H)
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+      ctx.strokeRect(8, y, CARD_W - 16, TRAIT_H)
+
+      ctx.font = '9px monospace'
+      ctx.fillStyle = '#888888'
+      ctx.fillText(attr.trait_type.toUpperCase(), 16, y + 17)
+
+      ctx.font = '10px monospace'
+      ctx.fillStyle = '#eeeeee'
+      const val = attr.value.length > 22 ? attr.value.slice(0, 22) + '…' : attr.value
+      ctx.fillText(val, CARD_W - 16 - ctx.measureText(val).width, y + 17)
+
+      y += TRAIT_H + 3
+    }
+  }
+
+  // OpenSea strip
+  const osY = CARD_H - FOOTER_H - OPENSEA_H
+  ctx.fillStyle = '#1c1c1e'
+  ctx.fillRect(0, osY, CARD_W, OPENSEA_H)
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+  ctx.beginPath()
+  ctx.moveTo(0, osY)
+  ctx.lineTo(CARD_W, osY)
+  ctx.stroke()
+  ctx.font = '11px monospace'
+  ctx.fillStyle = '#999999'
+  ctx.textAlign = 'center'
+  ctx.fillText('VIEW ON OPENSEA', CARD_W / 2, osY + 26)
+  ctx.textAlign = 'left'
+
+  // Footer strip
+  const footY = CARD_H - FOOTER_H
+  ctx.fillStyle = '#0c0c0e'
+  ctx.fillRect(0, footY, CARD_W, FOOTER_H)
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+  ctx.beginPath()
+  ctx.moveTo(0, footY)
+  ctx.lineTo(CARD_W, footY)
+  ctx.stroke()
+  ctx.font = '8px monospace'
+  ctx.fillStyle = '#555555'
+  ctx.fillText('NORMIES.ART', 12, footY + 18)
+  ctx.fillText('WORLD SIMULATION', CARD_W - 12 - ctx.measureText('WORLD SIMULATION').width, footY + 18)
+
+  // Trigger download
+  const link = document.createElement('a')
+  link.download = `normie-${String(n.id).padStart(4, '0')}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
 export default function CollectionCardModal({ normie: n, onClose }: Props) {
   const accent = n.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
   const rgb    = hexToRgb(accent)
   const normieNum = String(n.id).padStart(4, '0')
+
+  const handleDownload = useCallback(() => {
+    downloadCardAsPng(n, accent)
+  }, [n, accent])
 
   const photoGlass = `linear-gradient(160deg,
     rgba(255,255,255,0.45) 0%,
@@ -100,14 +247,20 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
             </div>
           )}
 
-          {/* OpenSea */}
-          <div style={{ padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: '#1c1c1e' }}>
+          {/* Actions */}
+          <div style={{ padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: '#1c1c1e', display: 'flex', gap: 6 }}>
             <a href={getOpenseaUrl(n.id)} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#999', textDecoration: 'none', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#999', textDecoration: 'none', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' }}
               onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#2081E2'; el.style.borderColor = 'rgba(32,129,226,0.4)' }}
               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#999'; el.style.borderColor = 'rgba(255,255,255,0.09)' }}
-            ><IconOpenSea /> View on OpenSea</a>
+            ><IconOpenSea /> OpenSea</a>
+            <button
+              onClick={e => { e.stopPropagation(); handleDownload() }}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#999', cursor: 'pointer', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'monospace' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = `rgba(${rgb},1)`; el.style.borderColor = `rgba(${rgb},0.4)` }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#999'; el.style.borderColor = 'rgba(255,255,255,0.09)' }}
+            >↓ Save PNG</button>
           </div>
 
           {/* Footer strip */}

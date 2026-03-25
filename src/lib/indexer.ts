@@ -7,9 +7,9 @@ import type { getDb, DbNormie } from './db'
 
 const API_BASE     = 'https://api.normies.art'
 const MAX_ID       = 9999
-// Sequential (concurrency=1) with 250ms gap — ~38 min for 9000 normies, never 429s
-const BATCH_SIZE   = 1
-const BATCH_DELAY  = 250  // ms between each fetch
+// 50 concurrent, no delay — retry handles 429s with backoff
+const BATCH_SIZE   = 50
+const BATCH_DELAY  = 0
 
 // ── Low-level fetch helpers ──────────────────────────────────────────────────
 
