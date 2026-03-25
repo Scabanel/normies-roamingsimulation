@@ -11,7 +11,6 @@ const SYS_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helveti
 const TYPE_ACCENT: Record<string, string> = {
   Human: '#1e6fff', Alien: '#9000ff', Cat: '#e07000', Agent: '#cc1111',
 }
-const THE100_ACCENT = '#d4a800'
 
 const TYPES = ['All', 'Human', 'Alien', 'Cat', 'Agent']
 const PER_PAGE = 120
@@ -47,7 +46,6 @@ export default function CollectionPage() {
   }, [])
 
   const [typeFilter,  setTypeFilter]  = useState('All')
-  const [the100Only,  setThe100Only]  = useState(false)
   const [traitType,   setTraitType]   = useState('')
   const [traitValue,  setTraitValue]  = useState('')
   const [search,      setSearch]      = useState('')
@@ -73,7 +71,6 @@ export default function CollectionPage() {
   const filtered = useMemo(() => {
     let list = normies
     if (typeFilter !== 'All') list = list.filter(n => n.type === typeFilter)
-    if (the100Only)           list = list.filter(n => n.isThe100)
     if (traitType && traitValue)
       list = list.filter(n => n.attributes.some(a => a.trait_type === traitType && a.value === traitValue))
     const q = search.trim()
@@ -83,7 +80,7 @@ export default function CollectionPage() {
       else list = list.filter(n => n.name.toLowerCase().includes(q.toLowerCase()))
     }
     return list
-  }, [normies, typeFilter, the100Only, traitType, traitValue, search])
+  }, [normies, typeFilter, traitType, traitValue, search])
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
@@ -155,16 +152,6 @@ export default function CollectionPage() {
               </button>
             ))}
 
-            {/* THE100 toggle */}
-            <button onClick={() => { setThe100Only(v => !v); resetPage() }} style={{
-              ...INPUT_STYLE, cursor: 'pointer',
-              color: the100Only ? '#ffd700' : '#9ca3af',
-              borderColor: the100Only ? THE100_ACCENT : '#2a2a2a',
-              background: the100Only ? 'rgba(212,168,0,0.08)' : '#0c0c0e',
-            }}>
-              ★ THE100
-            </button>
-
             <div style={{ width: 1, height: 28, background: '#2a2a2a', margin: '0 4px' }} />
 
             {/* Trait filter */}
@@ -197,7 +184,7 @@ export default function CollectionPage() {
             {totalPages > 1 && ` · page ${page}/${totalPages}`}
           </span>
           {filtered.length !== normies.length && (
-            <button onClick={() => { setTypeFilter('All'); setThe100Only(false); setTraitType(''); setTraitValue(''); setSearch(''); resetPage() }}
+            <button onClick={() => { setTypeFilter('All'); setTraitType(''); setTraitValue(''); setSearch(''); resetPage() }}
               style={{ fontSize: 11, color: '#888', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
               clear filters
             </button>
@@ -265,7 +252,7 @@ export default function CollectionPage() {
 
 /* ── Small thumbnail ─────────────────────────────────────────────────────── */
 function NormieThumb({ normie: n, onClick }: { normie: NormieMetadata; onClick: () => void }) {
-  const accent = n.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
+  const accent = TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human
   const [hover, setHover] = useState(false)
 
   return (
@@ -275,12 +262,12 @@ function NormieThumb({ normie: n, onClick }: { normie: NormieMetadata; onClick: 
       onMouseLeave={() => setHover(false)}
       style={{
         cursor: 'pointer', background: '#0c0c0e',
-        border: `1px solid ${hover ? accent : (n.isThe100 ? THE100_ACCENT + '66' : '#1f1f1f')}`,
+        border: `1px solid ${accent}`,
         borderTop: `3px solid ${accent}`,
         borderRadius: 3,
         transform: hover ? 'translateY(-2px)' : 'none',
         transition: 'border-color 0.15s, transform 0.15s',
-        boxShadow: n.isThe100 ? `0 0 10px rgba(212,168,0,0.20)` : 'none',
+        boxShadow: 'none',
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -294,7 +281,6 @@ function NormieThumb({ normie: n, onClick }: { normie: NormieMetadata; onClick: 
         <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#555', letterSpacing: '0.04em' }}>
           #{String(n.id).padStart(4, '0')}
         </span>
-        {n.isThe100 && <span style={{ fontSize: 9, color: THE100_ACCENT }}>★</span>}
       </div>
     </div>
   )

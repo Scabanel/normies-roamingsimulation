@@ -7,7 +7,6 @@ export interface NormieMetadata {
   gender: string
   attributes: { trait_type: string; value: string }[]
   imageUrl: string
-  isThe100: boolean
 }
 
 const API_BASE = 'https://api.normies.art'
@@ -83,11 +82,6 @@ export async function fetchNormieTrait(id: number): Promise<NormieMetadata | nul
         t.trait_type === 'Gender' || t.trait_type === 'gender'
       )
       const rawType: string = typeAttr?.value ?? 'Human'
-      // THE100 is a flag determined by other traits — never a Type value
-      const isThe100 = traits.some(t =>
-        String(t.value).toLowerCase().includes('the100') ||
-        String(t.trait_type).toLowerCase().includes('the100')
-      )
       const normie: NormieMetadata = {
         id,
         name: `Normie #${id}`,
@@ -95,7 +89,6 @@ export async function fetchNormieTrait(id: number): Promise<NormieMetadata | nul
         gender: genderAttr?.value || 'Unknown',
         attributes: traits,
         imageUrl: `${API_BASE}/normie/${id}/image.png`,
-        isThe100,
       }
       TYPE_CACHE.set(id, normie)
       return normie

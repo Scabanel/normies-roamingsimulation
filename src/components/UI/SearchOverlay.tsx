@@ -61,7 +61,6 @@ export default function SearchOverlay() {
     Alien: 'text-purple-400',
     Cat: 'text-orange-400',
     Agent: 'text-gray-400',
-    THE100: 'text-yellow-400',
   }
 
   return (
@@ -131,9 +130,6 @@ export default function SearchOverlay() {
               <div className="font-mono text-sm text-white">{focused.name}</div>
               <div className={`font-mono text-xs ${typeColors[focused.type] ?? 'text-white'}`}>
                 {focused.type} • {focused.gender}
-                {focused.isThe100 && (
-                  <span className="ml-1 text-yellow-400">★ THE100</span>
-                )}
               </div>
             </div>
           </div>

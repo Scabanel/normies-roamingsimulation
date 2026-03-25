@@ -157,13 +157,11 @@ async function loadFromApi(
 
   const { normies } = useWorldStore.getState()
   const sorted = [...normies].sort((a, b) => {
-    if (a.isThe100 !== b.isThe100) return a.isThe100 ? -1 : 1
-    return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
+        return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
   })
   setNormies(sorted)
   writeCache(cacheItems.sort((a, b) => {
-    if (a.isThe100 !== b.isThe100) return a.isThe100 ? -1 : 1
-    return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
+        return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
   }))
 }
 
@@ -244,13 +242,11 @@ export default function NormiesLoader() {
 
           const { normies } = useWorldStore.getState()
           const sorted = [...normies].sort((a, b) => {
-            if (a.isThe100 !== b.isThe100) return a.isThe100 ? -1 : 1
-            return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
+                        return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
           })
           setNormies(sorted)
           writeCache(cacheItems.sort((a, b) => {
-            if (a.isThe100 !== b.isThe100) return a.isThe100 ? -1 : 1
-            return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
+                        return (TYPE_PRIORITY[a.type] ?? 2) - (TYPE_PRIORITY[b.type] ?? 2)
           }))
 
         } else {

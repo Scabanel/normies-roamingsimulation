@@ -24,7 +24,6 @@ export function getDb() {
       name                TEXT    NOT NULL,
       type                TEXT    NOT NULL DEFAULT 'Human',
       gender              TEXT    NOT NULL DEFAULT 'Unknown',
-      is_the100           INTEGER NOT NULL DEFAULT 0,
       image_url           TEXT    NOT NULL DEFAULT '',
       attributes          TEXT    NOT NULL DEFAULT '[]',
       holder              TEXT,
@@ -39,7 +38,6 @@ export function getDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_normies_type     ON normies(type);
-    CREATE INDEX IF NOT EXISTS idx_normies_the100   ON normies(is_the100);
     CREATE INDEX IF NOT EXISTS idx_normies_burned   ON normies(is_burned);
     CREATE INDEX IF NOT EXISTS idx_normies_holder_ts ON normies(holder_updated_at);
   `)
@@ -53,7 +51,6 @@ export interface DbNormie {
   name:              string
   type:              string
   gender:            string
-  is_the100:         0 | 1
   image_url:         string
   attributes:        string   // JSON string
   holder:            string | null

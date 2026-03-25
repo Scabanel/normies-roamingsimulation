@@ -5,8 +5,6 @@ import type { NormieMetadata } from '@/lib/normieApi'
 const TYPE_ACCENT: Record<string, string> = {
   Human: '#1e6fff', Alien: '#9000ff', Cat: '#e07000', Agent: '#cc1111',
 }
-const THE100_ACCENT = '#d4a800'
-
 function hexToRgb(hex: string) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return r ? `${parseInt(r[1], 16)},${parseInt(r[2], 16)},${parseInt(r[3], 16)}` : '255,255,255'
@@ -56,7 +54,7 @@ export default function NormieCardPreview({ normieId }: Props) {
     )
   }
 
-  const accent = normie.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[normie.type] ?? TYPE_ACCENT.Human)
+  const accent = TYPE_ACCENT[normie.type] ?? TYPE_ACCENT.Human
   const rgb = hexToRgb(accent)
   const numStr = String(normie.id).padStart(4, '0')
 
@@ -78,7 +76,7 @@ export default function NormieCardPreview({ normieId }: Props) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: '#eee', textTransform: 'uppercase', letterSpacing: '0.03em', fontWeight: 700 }}>{normie.name}</span>
-          <span style={{ fontSize: 10, color: accent, letterSpacing: '0.1em' }}>{normie.isThe100 ? '★ THE100' : normie.type.toUpperCase()}</span>
+          <span style={{ fontSize: 10, color: accent, letterSpacing: '0.1em' }}>{normie.type.toUpperCase()}</span>
         </div>
       </div>
       {/* Portrait */}

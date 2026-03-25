@@ -17,40 +17,10 @@ const TYPE_RGB: Record<string, [number, number, number]> = {
 const FLYING_RGB: [number, number, number] = [0.10, 0.90, 0.35]
 
 const MAX_POINTS = 12000
-const MAX_THE100 = 200
-
-// Vertex/fragment shaders for square THE100 dots (no circular clip)
-const SQUARE_VERT = `
-  uniform float pointSize;
-  void main() {
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = pointSize;
-  }
-`
-const SQUARE_FRAG_GLOW = `
-  uniform vec3 color;
-  uniform float opacity;
-  void main() {
-    // Soft square with feathered edges for glow effect
-    vec2 uv = gl_PointCoord - 0.5;
-    float d = max(abs(uv.x), abs(uv.y));
-    float alpha = (1.0 - smoothstep(0.35, 0.5, d)) * opacity;
-    gl_FragColor = vec4(color, alpha);
-  }
-`
-const SQUARE_FRAG_SOLID = `
-  uniform vec3 color;
-  uniform float opacity;
-  void main() {
-    // Hard-edged square
-    gl_FragColor = vec4(color, opacity);
-  }
-`
 
 export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: number) => void }) {
   const pointsRef = useRef<THREE.Points>(null)
 
-  // ── Regular normies ────────────────────────────────────────────────────────
   const posArr = useMemo(() => new Float32Array(MAX_POINTS * 3), [])
   const colArr = useMemo(() => new Float32Array(MAX_POINTS * 3), [])
   const geometry = useMemo(() => {
@@ -63,78 +33,16 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
     size: 4, vertexColors: true, sizeAttenuation: false, transparent: true, opacity: 1.0,
   }), [])
 
-  // ── THE100 outer diffuse square glow ───────────────────────────────────────
-  const auraPosArr = useMemo(() => new Float32Array(MAX_THE100 * 3), [])
-  const auraGeom = useMemo(() => {
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(auraPosArr, 3))
-    return geo
-  }, [auraPosArr])
-  const auraMat = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: {
-      color:     { value: new THREE.Color(0xffd060) },
-      opacity:   { value: 0.45 },
-      pointSize: { value: 36.0 },
-    },
-    vertexShader:   SQUARE_VERT,
-    fragmentShader: SQUARE_FRAG_GLOW,
-    transparent: true,
-    depthWrite:  false,
-    blending:    THREE.AdditiveBlending,
-  }), [])
-
-  // ── THE100 middle square glow ──────────────────────────────────────────────
-  const midPosArr = useMemo(() => new Float32Array(MAX_THE100 * 3), [])
-  const midGeom = useMemo(() => {
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(midPosArr, 3))
-    return geo
-  }, [midPosArr])
-  const midMat = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: {
-      color:     { value: new THREE.Color(0xffe566) },
-      opacity:   { value: 0.70 },
-      pointSize: { value: 18.0 },
-    },
-    vertexShader:   SQUARE_VERT,
-    fragmentShader: SQUARE_FRAG_GLOW,
-    transparent: true,
-    depthWrite:  false,
-    blending:    THREE.AdditiveBlending,
-  }), [])
-
-  // ── THE100 inner bright square core ───────────────────────────────────────
-  const innerPosArr = useMemo(() => new Float32Array(MAX_THE100 * 3), [])
-  const innerGeom = useMemo(() => {
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(innerPosArr, 3))
-    return geo
-  }, [innerPosArr])
-  const innerMat = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: {
-      color:     { value: new THREE.Color(0xfff8cc) },
-      opacity:   { value: 1.0 },
-      pointSize: { value: 9.0 },
-    },
-    vertexShader:   SQUARE_VERT,
-    fragmentShader: SQUARE_FRAG_SOLID,
-    transparent: true,
-    depthWrite:  false,
-    blending:    THREE.AdditiveBlending,
-  }), [])
-
   useFrame(() => {
     const { normies } = useWorldStore.getState()
     const total = Math.min(normies.length, MAX_POINTS)
     const R = GLOBE_RADIUS + 0.25
 
-    let count     = 0
-    let auraCount = 0
+    let count = 0
 
     for (let i = 0; i < total; i++) {
       const nm = normies[i]
-      // THE100 never sleep — always burning, always building
-      const sleeping = !nm.isThe100 && nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
+      const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
       if (sleeping) continue
 
       const phi   = (90 - nm.lat) * DEG2RAD
@@ -154,31 +62,11 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
       colArr[count * 3 + 1] = c[1]
       colArr[count * 3 + 2] = c[2]
       count++
-
-      if (nm.isThe100 && auraCount < MAX_THE100) {
-        auraPosArr[auraCount * 3]     = x
-        auraPosArr[auraCount * 3 + 1] = y
-        auraPosArr[auraCount * 3 + 2] = z
-        midPosArr[auraCount * 3]      = x
-        midPosArr[auraCount * 3 + 1]  = y
-        midPosArr[auraCount * 3 + 2]  = z
-        innerPosArr[auraCount * 3]     = x
-        innerPosArr[auraCount * 3 + 1] = y
-        innerPosArr[auraCount * 3 + 2] = z
-        auraCount++
-      }
     }
 
     geometry.attributes.position.needsUpdate = true
     geometry.attributes.color.needsUpdate    = true
     geometry.setDrawRange(0, count)
-
-    auraGeom.attributes.position.needsUpdate  = true
-    auraGeom.setDrawRange(0, auraCount)
-    midGeom.attributes.position.needsUpdate   = true
-    midGeom.setDrawRange(0, auraCount)
-    innerGeom.attributes.position.needsUpdate = true
-    innerGeom.setDrawRange(0, auraCount)
   })
 
   const handleClick = (e: THREE.Event & { point?: THREE.Vector3; stopPropagation?: () => void }) => {
@@ -192,7 +80,7 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
     const R = GLOBE_RADIUS + 0.25
     for (let i = 0; i < normies.length; i++) {
       const nm = normies[i]
-      const sleeping = !nm.isThe100 && nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
+      const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
       if (sleeping) continue
       const phi   = (90 - nm.lat) * DEG2RAD
       const theta = (nm.lon + 180) * DEG2RAD
@@ -206,16 +94,7 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
   }
 
   return (
-    <group>
-      {/* THE100 outer diffuse square glow (back layer) */}
-      <points geometry={auraGeom} material={auraMat} />
-      {/* THE100 middle square glow */}
-      <points geometry={midGeom} material={midMat} />
-      {/* THE100 inner bright square core */}
-      <points geometry={innerGeom} material={innerMat} />
-      {/* All normie dots (front layer) */}
-      <points ref={pointsRef} geometry={geometry} material={material}
-        onClick={handleClick as unknown as (event: THREE.Event) => void} />
-    </group>
+    <points ref={pointsRef} geometry={geometry} material={material}
+      onClick={handleClick as unknown as (event: THREE.Event) => void} />
   )
 }

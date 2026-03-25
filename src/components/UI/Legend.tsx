@@ -7,7 +7,6 @@ const TYPES = [
   { type: 'Alien', color: 'bg-purple-500', textColor: 'text-purple-400', desc: 'Parlent français' },
   { type: 'Cat', color: 'bg-orange-500', textColor: 'text-orange-400', desc: 'Meow only' },
   { type: 'Agent', color: 'bg-gray-600', textColor: 'text-gray-400', desc: 'Silent operators' },
-  { type: 'THE100', color: 'bg-yellow-400', textColor: 'text-yellow-400', desc: 'Shiny legendary' },
 ]
 
 export default function Legend() {

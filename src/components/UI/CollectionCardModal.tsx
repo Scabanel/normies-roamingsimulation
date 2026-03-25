@@ -1,13 +1,36 @@
 'use client'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getOpenseaUrl } from '@/lib/normieApi'
 import type { NormieMetadata } from '@/lib/normieApi'
+
+interface HolderInfo {
+  holder: string | null
+  displayName: string | null
+  twitterHandle: string | null
+}
+
+async function fetchHolderInfo(id: number): Promise<HolderInfo> {
+  try {
+    const res = await fetch(`/api/normies/${id}/holder`)
+    if (!res.ok) return { holder: null, displayName: null, twitterHandle: null }
+    const data = await res.json()
+    return {
+      holder:        data.holder        ?? null,
+      displayName:   data.displayName   ?? null,
+      twitterHandle: data.twitterHandle ?? null,
+    }
+  } catch {
+    return { holder: null, displayName: null, twitterHandle: null }
+  }
+}
+
+function truncate(addr: string) {
+  return addr.length > 16 ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : addr
+}
 
 const TYPE_ACCENT: Record<string, string> = {
   Human: '#1e6fff', Alien: '#9000ff', Cat: '#e07000', Agent: '#cc1111',
 }
-const THE100_ACCENT = '#d4a800'
-
 function hexToRgb(hex: string) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return r ? `${parseInt(r[1], 16)},${parseInt(r[2], 16)},${parseInt(r[3], 16)}` : '255,255,255'
@@ -74,7 +97,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string) {
   ctx.fillStyle = '#eeeeee'
   ctx.fillText(n.name.toUpperCase(), 12, 50)
 
-  const typeLabel = n.isThe100 ? '★ THE100' : n.type.toUpperCase()
+  const typeLabel = n.type.toUpperCase()
   ctx.font = '11px monospace'
   ctx.fillStyle = accent
   ctx.fillText(typeLabel, CARD_W - 12 - ctx.measureText(typeLabel).width, 50)
@@ -169,9 +192,16 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string) {
 }
 
 export default function CollectionCardModal({ normie: n, onClose }: Props) {
-  const accent = n.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
+  const accent = TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human
   const rgb    = hexToRgb(accent)
   const normieNum = String(n.id).padStart(4, '0')
+  const [holderInfo, setHolderInfo]       = useState<HolderInfo | null>(null)
+  const [holderLoading, setHolderLoading] = useState(true)
+
+  useEffect(() => {
+    setHolderLoading(true)
+    fetchHolderInfo(n.id).then(info => { setHolderInfo(info); setHolderLoading(false) })
+  }, [n.id])
 
   const handleDownload = useCallback(() => {
     downloadCardAsPng(n, accent)
@@ -217,7 +247,7 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#eee', textTransform: 'uppercase', letterSpacing: '0.03em', fontWeight: 700 }}>{n.name}</span>
-              <span style={{ fontSize: 11, color: accent, letterSpacing: '0.1em' }}>{n.isThe100 ? '★ THE100' : n.type.toUpperCase()}</span>
+              <span style={{ fontSize: 11, color: accent, letterSpacing: '0.1em' }}>{n.type.toUpperCase()}</span>
             </div>
           </div>
 
@@ -246,6 +276,30 @@ export default function CollectionCardModal({ normie: n, onClose }: Props) {
               </div>
             </div>
           )}
+
+          {/* Holder */}
+          <div style={{ padding: '6px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>Holder</div>
+            {holderLoading
+              ? <span style={{ fontSize: 11, color: '#666', fontFamily: 'monospace' }}>loading…</span>
+              : holderInfo === null || holderInfo.holder == null
+                ? <span style={{ fontSize: 11, color: '#444', fontFamily: 'monospace' }}>none</span>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontFamily: 'monospace' }}>
+                    {holderInfo.displayName && (
+                      <span style={{ fontSize: 12, color: '#ddd', fontWeight: 600 }}>{holderInfo.displayName}</span>
+                    )}
+                    {holderInfo.twitterHandle && (
+                      <a
+                        href={`https://x.com/${holderInfo.twitterHandle}`}
+                        target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ fontSize: 11, color: '#1d9bf0', textDecoration: 'none' }}
+                      >@{holderInfo.twitterHandle}</a>
+                    )}
+                    <span style={{ fontSize: 10, color: '#555' }}>{truncate(holderInfo.holder)}</span>
+                  </div>
+            }
+          </div>
 
           {/* Actions */}
           <div style={{ padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, background: '#1c1c1e', display: 'flex', gap: 6 }}>

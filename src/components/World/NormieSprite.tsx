@@ -16,7 +16,6 @@ const TYPE_COLORS: Record<string, [number, number, number]> = {
   Alien: [0.6, 0.2, 1.0],     // Purple
   Cat: [1.0, 0.5, 0.1],       // Orange
   Agent: [0.9, 0.1, 0.1],     // Red
-  THE100: [1.0, 0.84, 0.0],   // Gold
 }
 
 const TYPE_GLOW: Record<string, string> = {
@@ -24,7 +23,6 @@ const TYPE_GLOW: Record<string, string> = {
   Alien: '#9933ff',
   Cat: '#ff8800',
   Agent: '#cc1111',
-  THE100: '#FFD700',
 }
 
 const BORDER_COLOR: Record<string, string> = {
@@ -32,7 +30,6 @@ const BORDER_COLOR: Record<string, string> = {
   Alien:  '#AA33FF',
   Cat:    '#FF8800',
   Agent:  '#cc1111',
-  THE100: '#FFD700',
 }
 
 /** Convert lat/lon degrees to a THREE.Vector3 on the sphere surface at radius r. */
@@ -66,7 +63,6 @@ interface NormieSpriteProps {
 
 export default function NormieSprite({ normie }: NormieSpriteProps) {
   const groupRef = useRef<THREE.Group>(null)
-  const goldRingRef = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
   const { updateNormie, setFocusedNormieId, focusedNormieId } = useWorldStore()
 
@@ -74,8 +70,6 @@ export default function NormieSprite({ normie }: NormieSpriteProps) {
   const [textureLoaded, setTextureLoaded] = useState(false)
 
   const color = TYPE_COLORS[normie.type] ?? TYPE_COLORS.Human
-  const isThe100 = normie.isThe100
-
   const loadTexture = useCallback(() => {
     if (textureLoaded) return
     const loader = new THREE.TextureLoader()
@@ -111,13 +105,6 @@ export default function NormieSprite({ normie }: NormieSpriteProps) {
   const borderMaterial = useMemo(() => new THREE.MeshBasicMaterial({
     color: new THREE.Color(BORDER_COLOR[normie.type] ?? '#ffffff'),
   }), [normie.type])
-
-  const goldRingMaterial = useMemo(() => new THREE.MeshBasicMaterial({
-    color: new THREE.Color('#FFD700'),
-    transparent: true,
-    opacity: 0.85,
-    side: THREE.DoubleSide,
-  }), [])
 
   const isFocused = focusedNormieId === normie.id
 
@@ -172,14 +159,9 @@ export default function NormieSprite({ normie }: NormieSpriteProps) {
       })
     }
 
-    // Gold ring pulse for THE100
-    if (goldRingRef.current && isThe100) {
-      const pulse = 1 + Math.sin(clock.getElapsedTime() * 2.5 + normie.id * 0.7) * 0.12
-      goldRingRef.current.scale.setScalar(pulse)
-    }
   })
 
-  const spriteSize = (isThe100 || isFocused) ? 0.75 : 0.55
+  const spriteSize = isFocused ? 0.75 : 0.55
   const bubbleOpacity = normie.inConversation ? 1.0 : 0.85
   const bubbleFontSize = normie.inConversation ? 0.18 : 0.15
 
@@ -192,14 +174,6 @@ export default function NormieSprite({ normie }: NormieSpriteProps) {
           <planeGeometry args={[spriteSize + 0.18, spriteSize + 0.18]} />
           <primitive object={borderMaterial} attach="material" />
         </mesh>
-
-        {/* THE100 golden outer ring */}
-        {isThe100 && (
-          <mesh ref={goldRingRef}>
-            <ringGeometry args={[spriteSize * 0.55, spriteSize * 0.68, 24]} />
-            <primitive object={goldRingMaterial} attach="material" />
-          </mesh>
-        )}
 
         <mesh
           onClick={() => {

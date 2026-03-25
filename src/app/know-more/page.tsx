@@ -167,28 +167,6 @@ export default function KnowMorePage() {
 
           <Divider />
 
-          <Row>
-            <ColLabel>04 | Rarity</ColLabel>
-            <ColContent>
-              <h2 style={H2}>THE100 — They never sleep.</h2>
-              <p style={P}>
-                The rarest Normies in existence. Flagged THE100, they are surrounded by a gold luminous square aura — always burning, always visible, even in the darkest night.
-              </p>
-              <p style={{ ...P, marginTop: 16 }}>
-                While regular Normies rest when night falls at their location, THE100 never stop. They roam through the darkness, building, scheming, outpacing everyone else. The planet never truly sleeps as long as they&apos;re on it.
-              </p>
-              <p style={{ ...P, marginTop: 16 }}>
-                On the globe, their square gold light cuts through the dark side of the Earth. You can always find them. You can never ignore them.
-              </p>
-              <div style={{ marginTop: 28, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'inline-block', padding: '12px 20px', border: '1px solid #d4a800', borderRadius: 4, background: 'rgba(212,168,0,0.08)' }}>
-                  <span style={{ fontSize: 13, color: '#ffd700', letterSpacing: '0.12em', fontWeight: 700 }}>★ THE100</span>
-                </div>
-                <span style={{ fontSize: 13, color: '#666' }}>Active 24/7 · Always awake · Square gold aura</span>
-              </div>
-            </ColContent>
-          </Row>
-
           <Divider />
 
           <Row>
@@ -210,34 +188,6 @@ export default function KnowMorePage() {
                   }}>
                     <div style={{ padding: '16px 20px 16px 0', fontSize: 14, fontWeight: 700, color: '#fff', minWidth: 180, flexShrink: 0 }}>{key}</div>
                     <div style={{ padding: '16px 0', fontSize: 14, color: '#bbb' }}>{val}</div>
-                  </div>
-                ))}
-              </div>
-            </ColContent>
-          </Row>
-
-          <Divider />
-
-          <Row>
-            <ColLabel>06 | Changelog</ColLabel>
-            <ColContent>
-              <h2 style={H2}>Updates</h2>
-              <div style={{ marginTop: 24 }}>
-                {[
-                  { date: 'March 2026', title: 'Alien night-gathering', desc: 'Aliens in the dark converge into circles on night continents. At dawn, they teleport to lit locations.' },
-                  { date: 'March 2026', title: 'UI redesign', desc: 'Fixed header, collectible NormieCard, larger pixel clock, Find My Normie panel.' },
-                  { date: 'March 2026', title: 'Day/Night system', desc: 'Real sun position drives visibility. Seasonal declination included. Normies sleep on the dark side.' },
-                  { date: 'March 2026', title: 'Travel system', desc: 'Humans fly, Aliens teleport, Agents take underground tunnels, Cats follow humans.' },
-                  { date: 'March 2026', title: 'Initial release', desc: '8,888 Normies placed on a live 3D globe, roaming in real time with seeded daily positions.' },
-                ].map(({ date, title, desc }, i) => (
-                  <div key={title} style={{ display: 'flex', gap: 24, borderTop: i === 0 ? '1px solid #2a2a2a' : 'none', borderBottom: '1px solid #2a2a2a', padding: '22px 0' }}>
-                    <div style={{ minWidth: 110, flexShrink: 0 }}>
-                      <span style={{ fontSize: 12, color: '#888', letterSpacing: '0.06em' }}>{date}</span>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 7 }}>{title}</div>
-                      <div style={{ fontSize: 13, color: '#bbb', lineHeight: 1.8 }}>{desc}</div>
-                    </div>
                   </div>
                 ))}
               </div>

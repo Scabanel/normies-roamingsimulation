@@ -91,18 +91,6 @@ const agentDialogues = [
   "The package is secure.",
 ]
 
-const the100Dialogues = [
-  "I am one of the chosen few.",
-  "The hundred stand united.",
-  "Legendary. Always.",
-  "Gold runs through my veins.",
-  "THE100 never falls.",
-  "Born shiny, stay shiny.",
-  "You can't buy this kind of rare.",
-  "The council has spoken.",
-  "Above the normie masses.",
-  "Forged in the first block.",
-]
 
 const greetings: Record<NormieType, string[]> = {
   Human: ["Hey there!", "Gm!", "What's good?", "Wagmi!"],
@@ -111,7 +99,6 @@ const greetings: Record<NormieType, string[]> = {
   Agent: ["...", "Acknowledged.", "Move along."],
 }
 
-export { the100Dialogues }
 
 export function getRandomDialogue(type: NormieType): string {
   const pool = {
@@ -124,9 +111,6 @@ export function getRandomDialogue(type: NormieType): string {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-export function getThe100Dialogue(): string {
-  return the100Dialogues[Math.floor(Math.random() * the100Dialogues.length)]
-}
 
 export function getGreeting(type: NormieType): string {
   const pool = greetings[type] ?? greetings.Human

@@ -73,16 +73,11 @@ export async function fetchTraits(id: number): Promise<TraitRow | null> {
     const typeAttr   = traits.find(t => t.trait_type === 'Type'   || t.trait_type === 'type')
     const genderAttr = traits.find(t => t.trait_type === 'Gender' || t.trait_type === 'gender')
     const rawType    = typeAttr?.value ?? 'Human'
-    const isThe100   = traits.some(t =>
-      String(t.value).toLowerCase().includes('the100') ||
-      String(t.trait_type).toLowerCase().includes('the100')
-    )
     return {
       id,
       name:              `Normie #${id}`,
       type:              (['Human','Alien','Cat','Agent'].includes(rawType) ? rawType : 'Human'),
       gender:            genderAttr?.value || 'Unknown',
-      is_the100:         isThe100 ? 1 : 0,
       image_url:         `${API_BASE}/normie/${id}/image.png`,
       attributes:        JSON.stringify(traits),
       traits_updated_at: Math.floor(Date.now() / 1000),
@@ -133,13 +128,12 @@ export async function indexAllTraits(
 
   // 3 — Upsert prepared statement
   const upsert = db.prepare(`
-    INSERT INTO normies (id, name, type, gender, is_the100, image_url, attributes, traits_updated_at, is_burned)
-    VALUES (@id, @name, @type, @gender, @is_the100, @image_url, @attributes, @traits_updated_at, 0)
+    INSERT INTO normies (id, name, type, gender, image_url, attributes, traits_updated_at, is_burned)
+    VALUES (@id, @name, @type, @gender, @image_url, @attributes, @traits_updated_at, 0)
     ON CONFLICT(id) DO UPDATE SET
       name              = excluded.name,
       type              = excluded.type,
       gender            = excluded.gender,
-      is_the100         = excluded.is_the100,
       image_url         = excluded.image_url,
       attributes        = excluded.attributes,
       traits_updated_at = excluded.traits_updated_at,

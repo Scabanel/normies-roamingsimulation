@@ -86,7 +86,6 @@ export default function SidePanel() {
               <div className="font-mono text-xs text-white">{display.name}</div>
               <div className={`font-mono text-[10px] ${TYPE_COLOR[display.type] ?? 'text-gray-400'}`}>
                 {display.type}
-                {display.isThe100 && ' \u2605'}
               </div>
               <div className="font-mono text-[10px] text-gray-600">{display.continent}</div>
             </div>

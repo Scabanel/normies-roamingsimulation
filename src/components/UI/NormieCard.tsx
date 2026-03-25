@@ -32,7 +32,6 @@ const TYPE_ACCENT: Record<string, string> = {
   Cat:   '#e07000',
   Agent: '#cc1111',
 }
-const THE100_ACCENT = '#d4a800'
 
 const TRAVEL_LABEL: Record<string, string> = {
   flying:      '✈ Flying',
@@ -112,7 +111,7 @@ export default function NormieCard() {
   if (!n) return null
 
   const sleeping  = n.type !== 'Alien' && isNighttime(n.lat, n.lon)
-  const accent    = n.isThe100 ? THE100_ACCENT : (TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human)
+  const accent    = TYPE_ACCENT[n.type] ?? TYPE_ACCENT.Human
   const rgb       = hexToRgb(accent)
   const status    = sleeping                       ? '💤 Sleeping'
     : n.travelState !== 'grounded'                 ? TRAVEL_LABEL[n.travelState]
@@ -182,7 +181,7 @@ function CompactCard({ n, accent, rgb, status, normieNum, sleeping, onExpand, on
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', position: 'relative' }}>
               <span style={{ fontSize: 11, color: '#ddd', textTransform: 'uppercase', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{n.name}</span>
-              <span style={{ fontSize: 10, color: accent, letterSpacing: '0.1em' }}>{n.isThe100 ? '★ THE100' : n.type.toUpperCase()}</span>
+              <span style={{ fontSize: 10, color: accent, letterSpacing: '0.1em' }}>{n.type.toUpperCase()}</span>
             </div>
           </div>
 
@@ -281,7 +280,7 @@ function ExpandedCard({ n, accent, rgb, status, normieNum, sleeping, holderInfo,
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#eee', textTransform: 'uppercase', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '72%', fontWeight: 700 }}>{n.name}</span>
-              <span style={{ fontSize: 11, color: accent, letterSpacing: '0.1em' }}>{n.isThe100 ? '★ THE100' : n.type.toUpperCase()}</span>
+              <span style={{ fontSize: 11, color: accent, letterSpacing: '0.1em' }}>{n.type.toUpperCase()}</span>
             </div>
           </div>
 

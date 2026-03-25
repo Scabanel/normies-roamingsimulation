@@ -47,3 +47,5 @@ next-env.d.ts
 
 # normies-static.json is NOT gitignored — commit it after `npm run index && npm run build`
 # so Vercel serves it from CDN without any server-side fetching.
+
+.vercel
