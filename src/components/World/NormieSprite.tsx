@@ -15,7 +15,7 @@ const TYPE_COLORS: Record<string, [number, number, number]> = {
   Human: [0.2, 0.4, 1.0],     // Blue
   Alien: [0.6, 0.2, 1.0],     // Purple
   Cat: [1.0, 0.5, 0.1],       // Orange
-  Agent: [0.1, 0.1, 0.1],     // Black/very dark
+  Agent: [0.9, 0.1, 0.1],     // Red
   THE100: [1.0, 0.84, 0.0],   // Gold
 }
 
@@ -23,7 +23,7 @@ const TYPE_GLOW: Record<string, string> = {
   Human: '#3366ff',
   Alien: '#9933ff',
   Cat: '#ff8800',
-  Agent: '#333333',
+  Agent: '#cc1111',
   THE100: '#FFD700',
 }
 
@@ -31,7 +31,7 @@ const BORDER_COLOR: Record<string, string> = {
   Human:  '#3377FF',
   Alien:  '#AA33FF',
   Cat:    '#FF8800',
-  Agent:  '#888888',
+  Agent:  '#cc1111',
   THE100: '#FFD700',
 }
 

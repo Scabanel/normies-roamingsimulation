@@ -9,6 +9,7 @@ import DayNightClock from '@/components/UI/DayNightClock'
 import Header from '@/components/UI/Header'
 import EscHint from '@/components/UI/EscHint'
 import FindMyNormie from '@/components/UI/FindMyNormie'
+import WorldUpdateBadge from '@/components/UI/WorldUpdateBadge'
 import { useWorldStore } from '@/store/worldStore'
 
 const WorldScene = dynamic(() => import('@/components/World/WorldScene'), {
@@ -44,6 +45,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <EscHint />
       <NormieCard />
       <DayNightClock />
+      <WorldUpdateBadge />
       <FindMyNormie />
       {/* Page-specific content (e.g. explanations overlay) renders on top */}
       {children}

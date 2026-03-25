@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-refresh",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/update-holders",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

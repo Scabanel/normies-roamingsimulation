@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import ClientLayout from './ClientLayout'
 
 export const metadata: Metadata = {
-  title: 'Normies World',
-  description: 'A 3D pixel art world where Normies live',
+  title: "It's a Normie World",
+  description: 'World live simulation of the Normies NFT collection',
+  icons: { icon: '/favicon.png' },
 }
 
 export default function RootLayout({
@@ -14,9 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <ClientLayout>{children}</ClientLayout>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

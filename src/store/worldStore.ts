@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import { NormieMetadata, NormieType } from '@/lib/normieApi'
+import { NormieMetadata } from '@/lib/normieApi'
 import { CONTINENT_LATLON_BOUNDS, getRandomLandLatLon, findNearestBasement, BASEMENT_STATIONS, isOnLandCached } from '@/lib/worldMapData'
-import { getRandomDialogue, getGreeting } from '@/lib/dialogues'
+import { getRandomDialogue, getGreeting, getAlienNightDialogue } from '@/lib/dialogues'
 import type { NormieType as DialogueType } from '@/lib/dialogues'
 import { isNighttime, updateSunPosition } from '@/lib/daynight'
 
@@ -163,9 +163,6 @@ function generateConversation(a: NormieState, b: NormieState): ConversationMessa
   return msgs
 }
 
-// Suppress unused import warning — NormieType is used in the interface extension
-void (undefined as unknown as NormieType)
-
 // ── store ──────────────────────────────────────────────────────────────────────
 
 interface WorldStore {
@@ -192,7 +189,6 @@ interface WorldStore {
   setBurnedIds: (ids: Set<number>) => void
   setFetchedCount: (v: number) => void
   tick: (delta: number, skipProximity?: boolean) => void
-  updateNormiePositions: (delta: number) => void  // alias for backward compat
 }
 
 export const useWorldStore = create<WorldStore>((set) => ({
@@ -403,11 +399,11 @@ export const useWorldStore = create<WorldStore>((set) => ({
             next.lon += dLon * ratio
             next.isMoving = true
           } else {
-            // At slot — stand still and whisper conspiracy
+            // At slot — stand still and whisper conspiracy (always in French)
             next.isMoving = false
             if (!next.isTalking && next.dialogueTimer <= 0) {
               next.isTalking       = true
-              next.currentDialogue = getRandomDialogue('Alien')
+              next.currentDialogue = getAlienNightDialogue()
               next.dialogueTimer   = 3 + Math.random() * 5
             }
           }
@@ -656,9 +652,4 @@ export const useWorldStore = create<WorldStore>((set) => ({
 
     return { normies: Array.from(nm.values()), conversations: newConvs }
   }),
-
-  // Backward compat alias
-  updateNormiePositions: (delta) => {
-    useWorldStore.getState().tick(delta)
-  },
 }))

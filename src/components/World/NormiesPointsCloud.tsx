@@ -8,39 +8,53 @@ import { isNighttime } from '@/lib/daynight'
 
 const DEG2RAD = Math.PI / 180
 
-// Type colors (RGB 0-1) — kept saturated so dots read clearly on the dark globe
 const TYPE_RGB: Record<string, [number, number, number]> = {
-  Human:  [0.15, 0.55, 1.00],  // bright blue
-  Alien:  [0.75, 0.10, 1.00],  // vivid purple
-  Cat:    [1.00, 0.50, 0.00],  // vivid orange
-  Agent:  [0.70, 0.70, 0.70],  // light grey (visible on dark globe)
+  Human:  [0.15, 0.55, 1.00],
+  Alien:  [0.75, 0.10, 1.00],
+  Cat:    [1.00, 0.50, 0.00],
+  Agent:  [0.90, 0.10, 0.10],
 }
-const THE100_RGB: [number, number, number] = [1.00, 0.88, 0.00]  // gold for THE100 flagged normies
+const FLYING_RGB: [number, number, number] = [0.10, 0.90, 0.35]
 
-const MAX_POINTS = 10000
+const MAX_POINTS = 12000
+const MAX_THE100 = 200
 
 export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: number) => void }) {
-  // Read normies via getState() in useFrame to avoid re-rendering this component on every tick
   const pointsRef = useRef<THREE.Points>(null)
 
-  // Pre-allocated buffers
+  // ── Regular normies ────────────────────────────────────────────────────────
   const posArr = useMemo(() => new Float32Array(MAX_POINTS * 3), [])
   const colArr = useMemo(() => new Float32Array(MAX_POINTS * 3), [])
-
-  // Build geometry once, reuse
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3))
     geo.setAttribute('color',    new THREE.BufferAttribute(colArr, 3))
     return geo
   }, [posArr, colArr])
-
   const material = useMemo(() => new THREE.PointsMaterial({
-    size: 4,
-    vertexColors: true,
-    sizeAttenuation: false,  // pixels stay same size regardless of zoom
-    transparent: true,
-    opacity: 1.0,
+    size: 4, vertexColors: true, sizeAttenuation: false, transparent: true, opacity: 1.0,
+  }), [])
+
+  // ── THE100 outer aura — large diffuse gold halo ────────────────────────────
+  const auraPosArr = useMemo(() => new Float32Array(MAX_THE100 * 3), [])
+  const auraGeom = useMemo(() => {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(auraPosArr, 3))
+    return geo
+  }, [auraPosArr])
+  const auraMat = useMemo(() => new THREE.PointsMaterial({
+    color: 0xffd700, size: 28, sizeAttenuation: false, transparent: true, opacity: 0.60,
+  }), [])
+
+  // ── THE100 inner aura — bright tight ring ─────────────────────────────────
+  const innerPosArr = useMemo(() => new Float32Array(MAX_THE100 * 3), [])
+  const innerGeom = useMemo(() => {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(innerPosArr, 3))
+    return geo
+  }, [innerPosArr])
+  const innerMat = useMemo(() => new THREE.PointsMaterial({
+    color: 0xffe566, size: 10, sizeAttenuation: false, transparent: true, opacity: 0.92,
   }), [])
 
   useFrame(() => {
@@ -48,55 +62,67 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
     const total = Math.min(normies.length, MAX_POINTS)
     const R = GLOBE_RADIUS + 0.25
 
-    let count = 0
+    let count     = 0
+    let auraCount = 0
+
     for (let i = 0; i < total; i++) {
       const nm = normies[i]
-      // Sleeping normies are invisible — skip them entirely for a clean terminator line
       const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
       if (sleeping) continue
 
       const phi   = (90 - nm.lat) * DEG2RAD
       const theta = (nm.lon + 180) * DEG2RAD
-      posArr[count * 3]     = -R * Math.sin(phi) * Math.cos(theta)
-      posArr[count * 3 + 1] =  R * Math.cos(phi)
-      posArr[count * 3 + 2] =  R * Math.sin(phi) * Math.sin(theta)
+      const x = -R * Math.sin(phi) * Math.cos(theta)
+      const y =  R * Math.cos(phi)
+      const z =  R * Math.sin(phi) * Math.sin(theta)
 
-      let c: [number, number, number]
-      if (nm.travelState === 'flying') {
-        c = [1.00, 0.82, 0.10]  // golden-yellow for planes in flight
-      } else {
-        c = nm.isThe100 ? THE100_RGB : (TYPE_RGB[nm.type] ?? TYPE_RGB.Human)
-      }
+      posArr[count * 3]     = x
+      posArr[count * 3 + 1] = y
+      posArr[count * 3 + 2] = z
+
+      const c: [number, number, number] = nm.travelState === 'flying'
+        ? FLYING_RGB
+        : (TYPE_RGB[nm.type] ?? TYPE_RGB.Human)
       colArr[count * 3]     = c[0]
       colArr[count * 3 + 1] = c[1]
       colArr[count * 3 + 2] = c[2]
       count++
+
+      if (nm.isThe100 && auraCount < MAX_THE100) {
+        auraPosArr[auraCount * 3]     = x
+        auraPosArr[auraCount * 3 + 1] = y
+        auraPosArr[auraCount * 3 + 2] = z
+        innerPosArr[auraCount * 3]     = x
+        innerPosArr[auraCount * 3 + 1] = y
+        innerPosArr[auraCount * 3 + 2] = z
+        auraCount++
+      }
     }
 
     geometry.attributes.position.needsUpdate = true
-    geometry.attributes.color.needsUpdate = true
+    geometry.attributes.color.needsUpdate    = true
     geometry.setDrawRange(0, count)
+
+    auraGeom.attributes.position.needsUpdate  = true
+    auraGeom.setDrawRange(0, auraCount)
+    innerGeom.attributes.position.needsUpdate = true
+    innerGeom.setDrawRange(0, auraCount)
   })
 
-  // Click picking
   const handleClick = (e: THREE.Event & { point?: THREE.Vector3; stopPropagation?: () => void }) => {
     const { normies } = useWorldStore.getState()
     if (!onClick || normies.length === 0) return
     if (e.stopPropagation) e.stopPropagation()
-
-    // Find closest normie to click point
     const pt = (e as unknown as { point: THREE.Vector3 }).point
     if (!pt) return
     let minDist = Infinity
     let closest = -1
     const R = GLOBE_RADIUS + 0.25
-
     for (let i = 0; i < normies.length; i++) {
       const nm = normies[i]
-      // Can't click on sleeping normies — they aren't rendered
       const sleeping = nm.type !== 'Alien' && isNighttime(nm.lat, nm.lon) && nm.travelState === 'grounded'
       if (sleeping) continue
-      const phi = (90 - nm.lat) * DEG2RAD
+      const phi   = (90 - nm.lat) * DEG2RAD
       const theta = (nm.lon + 180) * DEG2RAD
       const px = -R * Math.sin(phi) * Math.cos(theta)
       const py =  R * Math.cos(phi)
@@ -104,16 +130,18 @@ export default function NormiesPointsCloud({ onClick }: { onClick?: (normieId: n
       const d = (px - pt.x) ** 2 + (py - pt.y) ** 2 + (pz - pt.z) ** 2
       if (d < minDist) { minDist = d; closest = nm.id }
     }
-
     if (closest !== -1 && minDist < 4) onClick(closest)
   }
 
   return (
-    <points
-      ref={pointsRef}
-      geometry={geometry}
-      material={material}
-      onClick={handleClick as unknown as (event: THREE.Event) => void}
-    />
+    <group>
+      {/* THE100 outer diffuse glow (back layer) */}
+      <points geometry={auraGeom} material={auraMat} />
+      {/* THE100 inner bright ring (middle layer) */}
+      <points geometry={innerGeom} material={innerMat} />
+      {/* All normie dots (front layer) */}
+      <points ref={pointsRef} geometry={geometry} material={material}
+        onClick={handleClick as unknown as (event: THREE.Event) => void} />
+    </group>
   )
 }

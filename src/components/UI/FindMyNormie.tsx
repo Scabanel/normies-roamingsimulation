@@ -105,8 +105,8 @@ export default function FindMyNormie() {
         </div>
       )}
       {status === 'notfound' && (
-        <div style={{ marginTop: 10, fontFamily: 'monospace', fontSize: 10, color: '#6b7280' }}>
-          Not found — still loading?
+        <div style={{ marginTop: 10, fontSize: 10, color: '#6b7280' }}>
+          Not found, still loading?
         </div>
       )}
       {status === 'found' && (

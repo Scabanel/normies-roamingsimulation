@@ -82,48 +82,59 @@ export default function DayNightClock() {
       background: '#111827',
       border: '1px solid #374151',
       borderRadius: 8,
-      padding: '14px 18px',
+      padding: '12px 16px',
       boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-      minWidth: 120,
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
     }}>
-      {/* Pixel time */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: PX_GAP * 2 }}>
-        {mounted ? (
-          <>
-            <PixelDigit ch={hh[0]} />
-            <PixelDigit ch={hh[1]} />
-            <PixelColon blink={blink} />
-            <PixelDigit ch={mm[0]} />
-            <PixelDigit ch={mm[1]} />
-          </>
-        ) : (
-          <>
-            <PixelDigit ch="0" dim />
-            <PixelDigit ch="0" dim />
-            <PixelColon blink={false} />
-            <PixelDigit ch="0" dim />
-            <PixelDigit ch="0" dim />
-          </>
-        )}
+      {/* Left: pixel clock + timezone */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: PX_GAP * 2 }}>
+          {mounted ? (
+            <>
+              <PixelDigit ch={hh[0]} />
+              <PixelDigit ch={hh[1]} />
+              <PixelColon blink={blink} />
+              <PixelDigit ch={mm[0]} />
+              <PixelDigit ch={mm[1]} />
+            </>
+          ) : (
+            <>
+              <PixelDigit ch="0" dim />
+              <PixelDigit ch="0" dim />
+              <PixelColon blink={false} />
+              <PixelDigit ch="0" dim />
+              <PixelDigit ch="0" dim />
+            </>
+          )}
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#4b5563', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          {mounted ? `CET${t.isDST ? '+2' : '+1'}` : 'CET'}
+        </div>
       </div>
 
-      {/* Label */}
-      <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#4b5563', letterSpacing: '0.15em', textTransform: 'uppercase', textAlign: 'center', marginTop: 6 }}>
-        {mounted ? `CET${t.isDST ? '+2' : '+1'}` : 'CET'}
-      </div>
-
-      {/* Awake/Sleeping */}
+      {/* Divider */}
       {mounted && total > 0 && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #1f2937' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <div style={{ width: 1, alignSelf: 'stretch', background: '#1f2937', flexShrink: 0 }} />
+      )}
+
+      {/* Right: awake / sleeping + daily reset hint */}
+      {mounted && total > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 6, height: 6, background: '#ca8a04', borderRadius: 2, flexShrink: 0 }} />
             <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#9ca3af', flex: 1 }}>Awake</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{awake.toLocaleString()}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#d1d5db', fontVariantNumeric: 'tabular-nums', marginLeft: 8 }}>{awake.toLocaleString()}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 6, height: 6, background: '#374151', borderRadius: 2, flexShrink: 0 }} />
             <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#4b5563', flex: 1 }}>Sleeping</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>{asleep.toLocaleString()}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', fontVariantNumeric: 'tabular-nums', marginLeft: 8 }}>{asleep.toLocaleString()}</span>
+          </div>
+          <div style={{ marginTop: 2, fontFamily: 'monospace', fontSize: 8, color: '#374151', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            World resets at midnight CET
           </div>
         </div>
       )}

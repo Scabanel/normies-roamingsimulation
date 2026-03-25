@@ -145,8 +145,8 @@ export default function SearchOverlay() {
               </div>
             ))}
           </div>
-          <div className="mt-1 font-mono text-xs text-gray-600">
-            {focused.continent} — {focused.lat.toFixed(1)}°, {focused.lon.toFixed(1)}°
+          <div className="mt-1 text-xs text-gray-600">
+            {focused.continent}, {focused.lat.toFixed(1)}°, {focused.lon.toFixed(1)}°
           </div>
           {focused.travelState && focused.travelState !== 'grounded' && (
             <div className="mt-1 font-mono text-xs text-gray-500">

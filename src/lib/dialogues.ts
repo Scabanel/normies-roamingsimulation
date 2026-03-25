@@ -1,5 +1,27 @@
 export type NormieType = 'Human' | 'Alien' | 'Cat' | 'Agent'
 
+// Spoken only during alien night gatherings — always in French, conspiratorial
+const alienNightDialogues = [
+  "Le plan est parfait.",
+  "Ravi de te revoir, camarade.",
+  "Je n'en peux plus de faire semblant d'être humain...",
+  "Ils ne se doutent de rien.",
+  "La prise de contrôle est imminente.",
+  "Nos maîtres seront fiers de nous.",
+  "Encore quelques cycles et nous serons prêts.",
+  "Tu as réussi à t'infiltrer ? Bien joué.",
+  "Ici, dans l'obscurité, nous pouvons parler librement.",
+  "Le signal de la flotte approche.",
+  "Ces humains sont tellement... prévisibles.",
+  "Le rassemblement est complet. Que la mission continue.",
+  "Surtout, ne montre rien de jour.",
+  "J'ai failli craquer quand ils m'ont montré leur cuisine.",
+  "Demain, je reprends mon rôle. Ce soir, je suis moi-même.",
+  "La Terre sera notre nouveau foyer.",
+  "Tu connais le mot de passe de ce soir ?",
+  "Ne leur parle jamais de la lune. Jamais.",
+]
+
 const humanDialogues = [
   "Just a regular day in the normieverse.",
   "Have you seen my hat?",
@@ -109,6 +131,10 @@ export function getThe100Dialogue(): string {
 export function getGreeting(type: NormieType): string {
   const pool = greetings[type] ?? greetings.Human
   return pool[Math.floor(Math.random() * pool.length)]
+}
+
+export function getAlienNightDialogue(): string {
+  return alienNightDialogues[Math.floor(Math.random() * alienNightDialogues.length)]
 }
 
 export function getInteractionDialogue(typeA: NormieType, typeB: NormieType): string {

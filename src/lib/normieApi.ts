@@ -10,15 +10,8 @@ export interface NormieMetadata {
   isThe100: boolean
 }
 
-export interface NormiePosition {
-  x: number
-  z: number
-  targetX: number
-  targetZ: number
-}
-
 const API_BASE = 'https://api.normies.art'
-const MAX_ID = 8888
+const MAX_ID = 9999
 
 // Normies NFT contract address on Ethereum mainnet (verified on OpenSea)
 export const NORMIES_CONTRACT = '0x9eb6e2025b64f340691e424b7fe7022ffde12438'
@@ -27,35 +20,34 @@ export function getOpenseaUrl(id: number): string {
   return `https://opensea.io/assets/ethereum/${NORMIES_CONTRACT}/${id}`
 }
 
-export async function fetchNormieHolder(id: number): Promise<string | null> {
-  try {
-    const res = await fetch(`${API_BASE}/normie/${id}/holder`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const data = await res.json()
-    if (typeof data === 'string') return data
-    return data.holder ?? data.owner ?? data.address ?? null
-  } catch {
-    return null
-  }
-}
 const BATCH_SIZE = 50
 const BATCH_DELAY_MS = 80  // faster loading (80ms between batches of 50)
 
 const TYPE_CACHE = new Map<number, NormieMetadata>()
 
-/** Fetch burned token IDs from /history/burned-tokens */
+/** Fetch ALL burned token IDs from /history/burned-tokens (paginated) */
 export async function fetchBurnedTokenIds(): Promise<Set<number>> {
+  const result = new Set<number>()
+  const PAGE = 100
+  let offset = 0
   try {
-    const res = await fetch(`${API_BASE}/history/burned-tokens`)
-    if (!res.ok) return new Set()
-    const data = await res.json()
-    const ids = Array.isArray(data)
-      ? data.map((d: unknown) => typeof d === 'number' ? d : (d as Record<string, number>).id ?? (d as Record<string, number>).tokenId)
-      : []
-    return new Set(ids.filter((id: unknown) => typeof id === 'number') as number[])
+    while (true) {
+      const res = await fetch(`${API_BASE}/history/burned-tokens?limit=${PAGE}&offset=${offset}`)
+      if (!res.ok) break
+      const data: unknown[] = await res.json()
+      if (!Array.isArray(data) || data.length === 0) break
+      for (const d of data) {
+        const raw = (d as Record<string, unknown>).tokenId ?? (d as Record<string, unknown>).id
+        const id = typeof raw === 'number' ? raw : parseInt(String(raw), 10)
+        if (!isNaN(id)) result.add(id)
+      }
+      if (data.length < PAGE) break
+      offset += PAGE
+    }
   } catch {
-    return new Set()
+    // return whatever we collected so far
   }
+  return result
 }
 
 /** Fetch all valid (non-burned) normie IDs */
@@ -114,11 +106,6 @@ export async function fetchNormieTrait(id: number): Promise<NormieMetadata | nul
   return null
 }
 
-/** Legacy alias */
-export async function fetchNormieMetadata(id: number): Promise<NormieMetadata | null> {
-  return fetchNormieTrait(id)
-}
-
 /** Batch loader with progress callback (streaming) */
 export async function fetchBatchNormies(
   ids: number[],
@@ -138,11 +125,3 @@ export async function fetchBatchNormies(
   return allResults
 }
 
-/** Legacy: get initial set of IDs (first MAX_ID+1) */
-export function getInitialNormieIds(): number[] {
-  const ids: number[] = []
-  for (let i = 0; i <= MAX_ID; i++) {
-    ids.push(i)
-  }
-  return ids
-}

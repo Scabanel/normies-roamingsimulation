@@ -1,10 +1,10 @@
 export default function LoadingScreen() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-      <div className="font-mono text-gray-400 text-sm mb-4 tracking-widest uppercase">
-        Normies World
+      <div className="text-gray-400 text-sm mb-4 tracking-widest uppercase">
+        It&apos;s a Normie World
       </div>
-      <div className="font-mono text-gray-700 text-xs animate-pulse">
+      <div className="text-gray-700 text-xs animate-pulse">
         Initializing simulation...
       </div>
       <div className="mt-4 flex gap-1">

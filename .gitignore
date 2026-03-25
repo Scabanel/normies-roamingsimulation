@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local database (populated by npm run index)
+/data/*.db
+/data/*.db-shm
+/data/*.db-wal
+
+# normies-static.json is NOT gitignored — commit it after `npm run index && npm run build`
+# so Vercel serves it from CDN without any server-side fetching.
