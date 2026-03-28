@@ -19,15 +19,14 @@ if (count === 0) {
 
 const db = getDb()
 const rows = db.prepare(
-  'SELECT id, name, type, gender, is_the100, image_url, attributes FROM normies WHERE is_burned = 0 ORDER BY is_the100 DESC, id ASC'
-).all() as { id: number; name: string; type: string; gender: string; is_the100: 0|1; image_url: string; attributes: string }[]
+  'SELECT id, name, type, gender, image_url, attributes FROM normies WHERE is_burned = 0 ORDER BY id ASC'
+).all() as { id: number; name: string; type: string; gender: string; image_url: string; attributes: string }[]
 
 const normies = rows.map(n => ({
   id:         n.id,
   name:       n.name,
   type:       n.type,
   gender:     n.gender,
-  isThe100:   Boolean(n.is_the100),
   imageUrl:   n.image_url,
   attributes: JSON.parse(n.attributes || '[]') as { trait_type: string; value: string }[],
 }))
