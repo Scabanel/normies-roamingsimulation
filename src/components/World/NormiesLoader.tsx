@@ -16,7 +16,7 @@ const TYPE_PRIORITY: Record<string, number> = {
   Agent: 3,
 }
 
-// ── Seeded PRNG — seed changes once per UTC day ──────────────────────────────
+// ── Seeded PRNG - seed changes once per UTC day ──────────────────────────────
 const DAY_SEED = Math.floor(Date.now() / 86400000)
 
 function seededRng(id: number) {
@@ -109,7 +109,7 @@ function writeCache(items: CachedNormie[]): void {
       }
     }
   } catch {
-    // quota exceeded — cache disabled, not critical
+    // quota exceeded - cache disabled, not critical
   }
 }
 
@@ -182,7 +182,7 @@ export default function NormiesLoader() {
         // ── FAST PATH: session cache hit ──────────────────────────────────────
         const cached = readCache()
         if (cached && cached.length > 0) {
-          // Positions are pre-computed — place everything synchronously, no HTTP
+          // Positions are pre-computed - place everything synchronously, no HTTP
           const states = cached.map(c => normieToState(c, c.ci, { lat: c.lat, lon: c.lon }))
           setNormies(states)
           setTotalNormiesCount(states.length)
@@ -251,7 +251,7 @@ export default function NormiesLoader() {
 
         } else {
           // Fallback: DB not ready, stream directly from api.normies.art
-          console.warn('[NormiesLoader] /api/normies returned', res.status, '— falling back to direct API')
+          console.warn('[NormiesLoader] /api/normies returned', res.status, '- falling back to direct API')
           await loadFromApi(
             mask, setLoadingProgress, setFetchedCount, setTotalNormiesCount,
             setBurnedIds, addNormies, setNormies,

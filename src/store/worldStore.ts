@@ -59,10 +59,10 @@ export interface ActiveConversation {
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 const DEG2RAD = Math.PI / 180
-const MOVE_SPEED = 0.025  // deg/s — faster, more lively
+const MOVE_SPEED = 0.025  // deg/s - faster, more lively
 const FLY_SPEED = 1.2   // deg/s during flight
 const TELE_DURATION = 1.0 // seconds for teleport animation
-const FLIGHT_COOLDOWN  = 86400  // 24h real time — each normie flies at most once per day
+const FLIGHT_COOLDOWN  = 86400  // 24h real time - each normie flies at most once per day
 const MAX_FLIGHTS_DAY  = 10     // max group-flight events per real 24-hour period
 const TELEPORT_COOLDOWN = 180 // 3 min (Alien)
 const PROXIMITY_DEG = 2.5    // conversation trigger distance
@@ -71,7 +71,7 @@ const MSG_TIME = 2.5         // seconds per message
 const MAX_CONVS = 12
 // Max pairs to check per proximity pass (caps O(n²) cost)
 const MAX_PROX_CHECKS = 4000
-const CAT_FOLLOW_RANGE = 3.0 // degrees — cats stay within this range of their human
+const CAT_FOLLOW_RANGE = 3.0 // degrees - cats stay within this range of their human
 
 function latLonToUnit(lat: number, lon: number): [number, number, number] {
   const phi = (90 - lat) * DEG2RAD
@@ -130,7 +130,7 @@ function getAlienCircleSlot(id: number): { angle: number; r: number } {
   return { angle: 0, r: 4 }
 }
 
-// Global daily flight budget — resets every real 24 hours
+// Global daily flight budget - resets every real 24 hours
 let _flightsToday  = 0
 let _flightDayTimer = 86400  // seconds until daily reset
 
@@ -263,7 +263,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
     for (const [id, n] of nm) {
       let next = { ...n }
 
-      // Sleeping normies are completely immobile — Aliens never sleep
+      // Sleeping normies are completely immobile - Aliens never sleep
       if (next.type !== 'Alien' && isNighttime(next.lat, next.lon) && next.travelState === 'grounded' && !next.inConversation) {
         next.isTalking = false
         next.isMoving = false
@@ -369,14 +369,14 @@ export const useWorldStore = create<WorldStore>((set) => ({
           if (next.dialogueTimer > 0)    next.dialogueTimer   -= delta
           if (next.dialogueTimer <= 0)   next.isTalking = false
 
-          // Deterministic circle slot — concentric rings (4°, 7°, 10°) clearly spaced
+          // Deterministic circle slot - concentric rings (4°, 7°, 10°) clearly spaced
           const { angle, r } = getAlienCircleSlot(next.id)
           const tLat = _nightRallyLat + r * Math.cos(angle)
           const tLon = _nightRallyLon + r * Math.sin(angle)
           const dist = angDeg(next.lat, next.lon, tLat, tLon)
 
           if (dist > 8 && next.teleportCooldown <= 0) {
-            // Far away — teleport directly to circle slot
+            // Far away - teleport directly to circle slot
             next.travelState    = 'teleporting'
             next.travelProgress = 0
             next.travelFromLat  = next.lat
@@ -389,7 +389,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
             next.currentDialogue = '🌑 ...'
             next.dialogueTimer   = 1.5
           } else if (dist > 0.15) {
-            // Close enough — walk toward slot at double speed
+            // Close enough - walk toward slot at double speed
             const dLat = tLat - next.lat
             const dLon = tLon - next.lon
             const d = Math.sqrt(dLat * dLat + dLon * dLon)
@@ -399,7 +399,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
             next.lon += dLon * ratio
             next.isMoving = true
           } else {
-            // At slot — stand still and whisper conspiracy (always in French)
+            // At slot - stand still and whisper conspiracy (always in French)
             next.isMoving = false
             if (!next.isTalking && next.dialogueTimer <= 0) {
               next.isTalking       = true
@@ -412,7 +412,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
           continue  // ← skip ALL normal wait/teleport/movement logic
 
         } else {
-          // Daytime — if was gathering, scatter with a dawn teleport
+          // Daytime - if was gathering, scatter with a dawn teleport
           const wasGathering = _alienGathering.has(next.id)
           _alienGathering.delete(next.id)
           if (wasGathering && next.teleportCooldown <= 0) {
@@ -616,7 +616,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
       nm.set(id, next)
     }
 
-    // ── proximity conversations — grouped by continent, capped iterations ───────
+    // ── proximity conversations - grouped by continent, capped iterations ───────
     if (!skipProximity && newConvs.length < MAX_CONVS) {
       const free = Array.from(nm.values()).filter(n =>
         !n.inConversation && n.travelState === 'grounded'

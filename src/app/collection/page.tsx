@@ -20,7 +20,7 @@ export default function CollectionPage() {
   const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
-    // 1. Session cache — written by NormiesLoader when the planet loads
+    // 1. Session cache - written by NormiesLoader when the planet loads
     //    Same key used by NormiesLoader: normies_v2_<UTC day seed>
     const DAY_SEED = Math.floor(Date.now() / 86400000)
     const CACHE_KEY = `normies_v2_${DAY_SEED}`

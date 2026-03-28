@@ -63,7 +63,7 @@ export default function LoadingOverlay() {
         fontFamily: SYS_FONT,
       }}
     >
-      {/* Normie wall — fills entire background */}
+      {/* Normie wall - fills entire background */}
       <NormieWall
         count={500}
         opacityScale={0.35}
@@ -113,7 +113,7 @@ export default function LoadingOverlay() {
           World live simulation, by @Scabanel_
         </p>
 
-        {/* Progress bar — pixel blocks */}
+        {/* Progress bar - pixel blocks */}
         <div style={{ display: 'flex', gap: 3 }}>
           {Array.from({ length: PIXEL_BLOCKS }).map((_, i) => (
             <div

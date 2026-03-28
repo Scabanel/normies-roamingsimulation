@@ -1,5 +1,5 @@
 /**
- * Core indexing logic — runs both in scripts (Node CLI) and in API route handlers.
+ * Core indexing logic - runs both in scripts (Node CLI) and in API route handlers.
  * Fetches trait + holder data from api.normies.art and persists to SQLite.
  */
 
@@ -7,7 +7,7 @@ import type { getDb, DbNormie } from './db'
 
 const API_BASE     = 'https://api.normies.art'
 const MAX_ID       = 9999
-// 50 concurrent, no delay — retry handles 429s with backoff
+// 50 concurrent, no delay - retry handles 429s with backoff
 const BATCH_SIZE   = 50
 const BATCH_DELAY  = 0
 
@@ -112,13 +112,13 @@ export async function indexAllTraits(
 ): Promise<IndexStats> {
   const stats: IndexStats = { total: 0, indexed: 0, burned: 0, failed: 0 }
 
-  // 1 — Burned tokens
+  // 1 - Burned tokens
   const burnedIds = await fetchBurnedIds()
   stats.burned = burnedIds.size
   const markBurned = db.prepare('UPDATE normies SET is_burned = 1 WHERE id = ?')
   for (const id of burnedIds) markBurned.run(id)
 
-  // 2 — Active ID list (optionally capped for dev mode)
+  // 2 - Active ID list (optionally capped for dev mode)
   let allIds: number[] = []
   for (let i = 0; i <= MAX_ID; i++) {
     if (!burnedIds.has(i)) allIds.push(i)
@@ -126,7 +126,7 @@ export async function indexAllTraits(
   if (limit && limit > 0) allIds = allIds.slice(0, limit)
   stats.total = allIds.length
 
-  // 3 — Upsert prepared statement
+  // 3 - Upsert prepared statement
   const upsert = db.prepare(`
     INSERT INTO normies (id, name, type, gender, image_url, attributes, traits_updated_at, is_burned)
     VALUES (@id, @name, @type, @gender, @image_url, @attributes, @traits_updated_at, 0)
@@ -140,7 +140,7 @@ export async function indexAllTraits(
       is_burned         = 0
   `)
 
-  // 4 — Batch fetch
+  // 4 - Batch fetch
   for (let i = 0; i < allIds.length; i += BATCH_SIZE) {
     const batch   = allIds.slice(i, i + BATCH_SIZE)
     const results = await Promise.all(batch.map(fetchTraits))

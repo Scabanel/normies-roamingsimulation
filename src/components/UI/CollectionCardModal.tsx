@@ -103,7 +103,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
   const ctx = canvas.getContext('2d')!
   ctx.scale(dpr, dpr)
 
-  // Uniform background — no darker header/footer to avoid metallic frame look
+  // Uniform background - no darker header/footer to avoid metallic frame look
   ctx.fillStyle = '#131315'
   ctx.fillRect(0, 0, CARD_W, CARD_H)
 
@@ -132,7 +132,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
   ctx.fillStyle = accent
   ctx.fillText(typeLabel, CARD_W - 12 - ctx.measureText(typeLabel).width, 50)
 
-  // Portrait — load image with crossOrigin
+  // Portrait - load image with crossOrigin
   const imgY = HEADER_H
   ctx.fillStyle = '#222222'
   ctx.fillRect(0, imgY, CARD_W, IMG_H)
@@ -148,7 +148,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(img, 0, imgY, CARD_W, IMG_H)
   } catch {
-    // CORS blocked — draw placeholder
+    // CORS blocked - draw placeholder
     ctx.fillStyle = '#333333'
     ctx.fillRect(0, imgY, CARD_W, IMG_H)
     ctx.fillStyle = '#555555'
@@ -158,7 +158,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
     ctx.textAlign = 'left'
   }
 
-  // Holder — right after image, before traits
+  // Holder - right after image, before traits
   const holderY = HEADER_H + IMG_H
   ctx.fillStyle = 'rgba(255,255,255,0.03)'
   ctx.fillRect(0, holderY, CARD_W, HOLDER_H)
@@ -194,7 +194,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
     }
   }
 
-  // Traits — after holder
+  // Traits - after holder
   let y = HEADER_H + IMG_H + HOLDER_H + TRAITS_PAD
   if (n.attributes.length > 0) {
     ctx.font = '9px monospace'
@@ -221,7 +221,7 @@ async function downloadCardAsPng(n: NormieMetadata, accent: string, holderInfo: 
     }
   }
 
-  // Footer — same background, just a separator line
+  // Footer - same background, just a separator line
   const footY = CARD_H - FOOTER_H
   ctx.strokeStyle = 'rgba(255,255,255,0.06)'
   ctx.beginPath()

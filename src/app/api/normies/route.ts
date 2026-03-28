@@ -8,7 +8,7 @@
  * The result is cached server-side for 24h via unstable_cache (shared across
  * all Vercel invocations). The daily cron at /api/cron/daily-refresh
  * invalidates the 'normies' tag at midnight CET so the next visitor
- * triggers a fresh fetch — no one else pays the cost.
+ * triggers a fresh fetch - no one else pays the cost.
  */
 
 import { NextResponse } from 'next/server'
@@ -41,7 +41,7 @@ const getNormies = unstable_cache(
         }))
       }
     } catch {
-      // DB unavailable (Vercel serverless) — fall through
+      // DB unavailable (Vercel serverless) - fall through
     }
 
     // ── 2. Static file + live burned-token filter (Vercel production) ────────
@@ -72,7 +72,7 @@ export async function GET() {
     const normies = await getNormies()
     if (normies.length === 0) {
       return NextResponse.json(
-        { error: 'No data — run `npm run index && npm run build` first.' },
+        { error: 'No data - run `npm run index && npm run build` first.' },
         { status: 503 }
       )
     }

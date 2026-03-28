@@ -1,7 +1,7 @@
 /**
  * GET /api/cron/update-holders
  *
- * Rolling holder refresh — called by Vercel Cron (or any scheduler) every hour.
+ * Rolling holder refresh - called by Vercel Cron (or any scheduler) every hour.
  * Updates up to 300 normies whose holder was last fetched >1h ago.
  *
  * Protected by CRON_SECRET env variable:

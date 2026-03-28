@@ -1,6 +1,6 @@
 export type NormieType = 'Human' | 'Alien' | 'Cat' | 'Agent'
 
-// Spoken only during alien night gatherings — always in French, conspiratorial
+// Spoken only during alien night gatherings - always in French, conspiratorial
 const alienNightDialogues = [
   "Le plan est parfait.",
   "Ravi de te revoir, camarade.",

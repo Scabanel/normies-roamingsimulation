@@ -32,14 +32,14 @@ async function buildGlobeTexture(maxAnisotropy: number): Promise<THREE.CanvasTex
 
   const path = d3geo.geoPath(projection, ctx)
 
-  // 1. Fill land — #E2E5E4
+  // 1. Fill land - #E2E5E4
   const land = topojson.feature(worldData, worldData.objects.land)
   ctx.fillStyle = '#E2E5E4'
   ctx.beginPath()
   path(land as Parameters<typeof path>[0])
   ctx.fill()
 
-  // 2. Country interior borders — #484A4B, lineWidth 1.5
+  // 2. Country interior borders - #484A4B, lineWidth 1.5
   const countryBorders = topojson.mesh(
     worldData,
     worldData.objects.countries,
@@ -51,7 +51,7 @@ async function buildGlobeTexture(maxAnisotropy: number): Promise<THREE.CanvasTex
   path(countryBorders as Parameters<typeof path>[0])
   ctx.stroke()
 
-  // 3. Coastlines (outer continent borders) — #484A4B, lineWidth 2.5
+  // 3. Coastlines (outer continent borders) - #484A4B, lineWidth 2.5
   const coastlines = topojson.mesh(
     worldData,
     worldData.objects.countries,
@@ -103,7 +103,7 @@ export default function Globe() {
     [texture],
   )
 
-  // Rim atmosphere — BackSide sphere slightly larger, #E2E5E4 at very low opacity
+  // Rim atmosphere - BackSide sphere slightly larger, #E2E5E4 at very low opacity
   const atmosGeometry = useMemo(() => new THREE.SphereGeometry(GLOBE_RADIUS + 0.4, 64, 64), [])
   const atmosMaterial = useMemo(
     () =>

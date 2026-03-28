@@ -22,7 +22,7 @@ export default function CameraController() {
     if (!normie) return
 
     const surfacePos = latLonToVec3(normie.lat, normie.lon, GLOBE_RADIUS)
-    // Place camera along the outward normal — target stays at [0,0,0]
+    // Place camera along the outward normal - target stays at [0,0,0]
     const endPos = surfacePos.clone().normalize().multiplyScalar(FOLLOW_DIST)
 
     flyToRef.current = {
@@ -41,7 +41,7 @@ export default function CameraController() {
     camera.position.lerpVectors(fly.startPos, fly.endPos, ease)
     camera.lookAt(0, 0, 0)
     if (controls) {
-      // Keep OrbitControls synced — target always stays at globe center
+      // Keep OrbitControls synced - target always stays at globe center
       controls.target.set(0, 0, 0)
       controls.update()
     }

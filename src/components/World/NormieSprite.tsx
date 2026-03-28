@@ -167,9 +167,9 @@ export default function NormieSprite({ normie }: NormieSpriteProps) {
 
   return (
     <group ref={groupRef}>
-      {/* Billboard sprite — always faces camera */}
+      {/* Billboard sprite - always faces camera */}
       <Billboard follow={true} lockX={false} lockY={false} lockZ={false}>
-        {/* Type color border — rendered behind sprite */}
+        {/* Type color border - rendered behind sprite */}
         <mesh position={[0, 0, -0.02]}>
           <planeGeometry args={[spriteSize + 0.18, spriteSize + 0.18]} />
           <primitive object={borderMaterial} attach="material" />

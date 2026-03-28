@@ -34,3 +34,8 @@ const normies = rows.map(n => ({
 const outPath = path.join(process.cwd(), 'public', 'normies-static.json')
 fs.writeFileSync(outPath, JSON.stringify(normies))
 console.log(`[export-static] ${normies.length} normies → public/normies-static.json`)
+
+const updatedAt = new Date().toISOString()
+const metaPath = path.join(process.cwd(), 'public', 'normies-updated-at.json')
+fs.writeFileSync(metaPath, JSON.stringify({ updatedAt }))
+console.log(`[export-static] timestamp → public/normies-updated-at.json (${updatedAt})`)

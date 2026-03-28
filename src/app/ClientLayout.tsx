@@ -35,7 +35,7 @@ function EscHandler() {
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#000', overflow: 'hidden' }}>
-      {/* Globe — always mounted, never destroyed on navigation */}
+      {/* Globe - always mounted, never destroyed on navigation */}
       <Suspense fallback={<LoadingScreen />}>
         <WorldScene />
       </Suspense>

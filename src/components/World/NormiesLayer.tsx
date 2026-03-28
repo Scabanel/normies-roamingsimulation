@@ -115,7 +115,7 @@ export default function NormiesLayer() {
 
   return (
     <group>
-      {/* Points cloud — clicks only enabled when zoomed in to avoid accidental selection while rotating */}
+      {/* Points cloud - clicks only enabled when zoomed in to avoid accidental selection while rotating */}
       <NormiesPointsCloud onClick={spriteMode ? (id) => setFollowedNormieId(id) : undefined} />
       {/* Render up to 4 sprites only when very zoomed in */}
       {spriteMode && batch.map(normie => (

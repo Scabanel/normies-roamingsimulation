@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getCETTime, updateSunPosition, isNighttime } from '@/lib/daynight'
+import { updateSunPosition, isNighttime } from '@/lib/daynight'
 import { useWorldStore } from '@/store/worldStore'
 
 // 5-row × 3-col pixel digit patterns
@@ -62,10 +62,10 @@ export default function DayNightClock() {
 
   void tick
 
-  const t = getCETTime()
-  const hh = String(t.hours).padStart(2, '0')
-  const mm = String(t.minutes).padStart(2, '0')
-  const blink = mounted ? t.seconds % 2 === 0 : true
+  const now = new Date()
+  const hh = String(now.getUTCHours()).padStart(2, '0')
+  const mm = String(now.getUTCMinutes()).padStart(2, '0')
+  const blink = mounted ? now.getUTCSeconds() % 2 === 0 : true
 
   const total = normies.length
   const asleep = mounted && total > 0
@@ -111,7 +111,7 @@ export default function DayNightClock() {
           )}
         </div>
         <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#4b5563', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-          {mounted ? `CET${t.isDST ? '+2' : '+1'}` : 'CET'}
+          UTC
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export default function DayNightClock() {
             <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', fontVariantNumeric: 'tabular-nums', marginLeft: 8 }}>{asleep.toLocaleString()}</span>
           </div>
           <div style={{ marginTop: 2, fontFamily: 'monospace', fontSize: 8, color: '#374151', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            World resets at midnight CET
+            World resets at midnight UTC
           </div>
         </div>
       )}

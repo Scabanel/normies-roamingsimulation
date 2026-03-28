@@ -7,7 +7,7 @@ import NormieCardPreview from '@/components/UI/NormieCardPreview'
 const SYS_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"'
 
 export const metadata: Metadata = {
-  title: "Know more — It's a Normie World",
+  title: "Know more | It's a Normie World",
   description: "Everything you need to know about It's a Normie World simulation.",
 }
 
@@ -20,7 +20,7 @@ export default function KnowMorePage() {
       color: '#e5e7eb',
       fontFamily: SYS_FONT,
     }}>
-      {/* Fixed Normie wall — stays behind all content */}
+      {/* Fixed Normie wall - stays behind all content */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <NormieWall
           count={500}
@@ -36,7 +36,7 @@ export default function KnowMorePage() {
         }} />
       </div>
 
-      {/* Scrollable content — sits above the wall */}
+      {/* Scrollable content - sits above the wall */}
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', overflowY: 'auto' }}>
 
         {/* Sticky nav */}
@@ -79,7 +79,7 @@ export default function KnowMorePage() {
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 28px' }}>
 
           <Row>
-            <ColLabel>00 — Origin</ColLabel>
+            <ColLabel>00 | Origin</ColLabel>
             <ColContent>
               <h2 style={H2}>Where it started</h2>
               <p style={P}>
@@ -143,7 +143,7 @@ export default function KnowMorePage() {
           <Divider />
 
           <Row>
-            <ColLabel>03 — Day &amp; Night</ColLabel>
+            <ColLabel>03 | Day &amp; Night</ColLabel>
             <ColContent>
               <h2 style={H2}>Real sun. Real time.</h2>
               <p style={P}>
@@ -166,6 +166,35 @@ export default function KnowMorePage() {
           </Row>
 
           <Divider />
+
+          <Row>
+            <ColLabel>04 | Data &amp; Updates</ColLabel>
+            <ColContent>
+              <h2 style={H2}>The database updates daily, not instantly.</h2>
+              <p style={P}>
+                The simulation is powered by a snapshot of the Normies collection (traits, burn status, holder info), fetched once a day via a GitHub Actions job that runs every night at midnight UTC.
+              </p>
+              <p style={{ ...P, marginTop: 18 }}>
+                Once the job completes, it triggers a new Vercel build which deploys the updated data. The whole cycle takes a few minutes, so what you see on screen may be up to ~24h behind the actual on-chain state.
+              </p>
+              <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 1, border: '1px solid #2a2a2a' }}>
+                {[
+                  { icon: '🌙', label: 'Midnight UTC', sub: 'GitHub Actions fetches on-chain data and exports a new snapshot' },
+                  { icon: '⚙️', label: 'Build', sub: 'Vercel rebuilds and deploys with the fresh normies-static.json' },
+                  { icon: '🌍', label: 'Live', sub: 'The simulation loads the new data, your Normie is up to date' },
+                ].map(({ icon, label, sub }) => (
+                  <div key={label} style={{ padding: '24px 20px', background: 'rgba(10,10,10,0.80)', borderRight: '1px solid #2a2a2a' }}>
+                    <div style={{ fontSize: 20, marginBottom: 10 }}>{icon}</div>
+                    <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 12, color: '#999', lineHeight: 1.7 }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ ...P, marginTop: 24, fontSize: 13, color: '#666' }}>
+                This deliberate delay keeps the site fast and avoids hammering the Normies API with thousands of requests on every page load. The top-left badge on the globe shows exactly when the last update happened and when the next one is due.
+              </p>
+            </ColContent>
+          </Row>
 
           <Divider />
 
@@ -201,7 +230,7 @@ export default function KnowMorePage() {
             <ColContent>
               <h2 style={H2}>Your Normie. As a card.</h2>
               <p style={P}>
-                Every Normie has a collectible card — on-chain traits, pixel portrait, type accent. Click any Normie in the collection to open it.
+                Every Normie has a collectible card: on-chain traits, pixel portrait, type accent. Click any Normie in the collection to open it.
               </p>
               <div style={{ marginTop: 32, display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -212,7 +241,7 @@ export default function KnowMorePage() {
                     Each card shows the real on-chain traits of the Normie, its type accent color, and a link to OpenSea. From the collection page, you can also download any card as a PNG.
                   </p>
                   <p style={{ ...P, marginTop: 16 }}>
-                    This is just the beginning of what a collectible can be in this universe. Physical objects, limited prints, dynamic cards that reflect the Normie&apos;s live position — all possibilities.
+                    This is just the beginning of what a collectible can be in this universe. Physical objects, limited prints, dynamic cards that reflect the Normie&apos;s live position. All possibilities.
                   </p>
                   <div style={{ marginTop: 20 }}>
                     <a href="/collection" style={{ display: 'inline-block', fontSize: 12, color: '#9ca3af', textDecoration: 'none', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '10px 18px', border: '1px solid #374151', borderRadius: 4 }}>
