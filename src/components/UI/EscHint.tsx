@@ -1,9 +1,11 @@
 'use client'
 import { useWorldStore } from '@/store/worldStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function EscHint() {
+  const isMobile = useIsMobile()
   const followedNormieId = useWorldStore(s => s.followedNormieId)
-  if (followedNormieId === null) return null
+  if (followedNormieId === null || isMobile) return null
 
   return (
     <div style={{

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useWorldStore } from '@/store/worldStore'
 import { isNighttime } from '@/lib/daynight'
 import { getOpenseaUrl } from '@/lib/normieApi'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface HolderInfo {
   holder: string | null
@@ -91,6 +92,7 @@ function useSlabTilt() {
 }
 
 export default function NormieCard() {
+  const isMobile = useIsMobile()
   const { followedNormieId, focusedNormieId, normies, setFollowedNormieId, setFocusedNormieId } = useWorldStore()
   const activeId = followedNormieId ?? focusedNormieId
   const [expanded, setExpanded]           = useState(false)
@@ -129,16 +131,16 @@ export default function NormieCard() {
                     sleeping={sleeping} holderInfo={holderInfo} holderLoading={holderLoading}
                     onClose={handleClose} onCollapse={() => setExpanded(false)} />
     : <CompactCard  n={n} accent={accent} rgb={rgb} status={status} normieNum={normieNum}
-                    sleeping={sleeping} onExpand={() => setExpanded(true)} onClose={handleClose} />
+                    sleeping={sleeping} isMobile={isMobile} onExpand={() => setExpanded(true)} onClose={handleClose} />
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Compact card - top-right corner
 ───────────────────────────────────────────────────────────────────────────── */
-function CompactCard({ n, accent, rgb, status, normieNum, sleeping, onExpand, onClose }: {
+function CompactCard({ n, accent, rgb, status, normieNum, sleeping, isMobile, onExpand, onClose }: {
   n: ReturnType<typeof useWorldStore.getState>['normies'][0]
   accent: string; rgb: string; status: string; normieNum: string; sleeping: boolean
-  onExpand: () => void; onClose: () => void
+  isMobile: boolean; onExpand: () => void; onClose: () => void
 }) {
   const tilt = useSlabTilt()
   const photoAng   = tilt.slabAng + 60
@@ -150,7 +152,7 @@ function CompactCard({ n, accent, rgb, status, normieNum, sleeping, onExpand, on
     rgba(255,255,255,${0.40*tilt.sa}) 100%)`
 
   return (
-    <div style={{ position: 'fixed', top: 60, right: 14, width: 210, perspective: 900, zIndex: 50 }}>
+    <div style={{ position: 'fixed', top: 60, right: isMobile ? 8 : 14, width: isMobile ? 168 : 210, perspective: 900, zIndex: 50 }}>
       <div
         ref={tilt.slabRef}
         onMouseMove={tilt.onMouseMove} onMouseEnter={tilt.onMouseEnter} onMouseLeave={tilt.onMouseLeave}

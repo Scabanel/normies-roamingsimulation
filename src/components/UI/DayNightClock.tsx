@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { updateSunPosition, isNighttime } from '@/lib/daynight'
 import { useWorldStore } from '@/store/worldStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 // 5-row × 3-col pixel digit patterns
 const DIGITS: Record<string, number[]> = {
@@ -46,6 +47,7 @@ function PixelColon({ blink }: { blink: boolean }) {
 }
 
 export default function DayNightClock() {
+  const isMobile = useIsMobile()
   const [mounted, setMounted] = useState(false)
   const [tick, setTick] = useState(0)
   const normies = useWorldStore(s => s.normies)
@@ -116,12 +118,12 @@ export default function DayNightClock() {
       </div>
 
       {/* Divider */}
-      {mounted && total > 0 && (
+      {!isMobile && mounted && total > 0 && (
         <div style={{ width: 1, alignSelf: 'stretch', background: '#1f2937', flexShrink: 0 }} />
       )}
 
       {/* Right: awake / sleeping + daily reset hint */}
-      {mounted && total > 0 && (
+      {!isMobile && mounted && total > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 6, height: 6, background: '#ca8a04', borderRadius: 2, flexShrink: 0 }} />

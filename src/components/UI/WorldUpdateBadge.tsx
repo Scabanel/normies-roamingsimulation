@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function WorldUpdateBadge() {
+  const isMobile = useIsMobile()
   const [buildDate, setBuildDate] = useState<string | null>(null)
   const [countdown, setCountdown] = useState('...')
 
@@ -29,6 +31,8 @@ export default function WorldUpdateBadge() {
   const dateStr = buildDate
     ? new Date(buildDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : '...'
+
+  if (isMobile) return null
 
   return (
     <div style={{

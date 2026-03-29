@@ -38,6 +38,15 @@ export default function KnowMorePage() {
 
       {/* Scrollable content - sits above the wall */}
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', overflowY: 'auto' }}>
+        <style>{`
+          @media (max-width: 640px) {
+            .km-hero { padding: 48px 16px 36px !important; }
+            .km-container { padding: 36px 16px !important; }
+            .km-row { grid-template-columns: 1fr !important; gap: 10px !important; }
+            .km-label { position: static !important; margin-bottom: 2px; }
+            .km-divider { margin: 36px 0 !important; }
+          }
+        `}</style>
 
         {/* Sticky nav */}
         <header style={{
@@ -60,7 +69,7 @@ export default function KnowMorePage() {
         </header>
 
         {/* Hero */}
-        <section style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '100px 28px 80px' }}>
+        <section className="km-hero" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '100px 28px 80px' }}>
           <div style={{ maxWidth: 1000, margin: '0 auto' }}>
             <p style={{ fontSize: 12, color: '#888', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 24 }}>
               It&apos;s a Normie World
@@ -76,7 +85,7 @@ export default function KnowMorePage() {
         </section>
 
         {/* Two column layout */}
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 28px' }}>
+        <div className="km-container" style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 28px' }}>
 
           <Row>
             <ColLabel>00 | Origin</ColLabel>
@@ -319,7 +328,7 @@ export default function KnowMorePage() {
 
 function Row({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 48, alignItems: 'start' }}>
+    <div className="km-row" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 48, alignItems: 'start' }}>
       {children}
     </div>
   )
@@ -327,7 +336,7 @@ function Row({ children }: { children: React.ReactNode }) {
 
 function ColLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ paddingTop: 4, fontSize: 12, color: '#888', letterSpacing: '0.15em', textTransform: 'uppercase', lineHeight: 1.6, position: 'sticky', top: 84 }}>
+    <div className="km-label" style={{ paddingTop: 4, fontSize: 12, color: '#888', letterSpacing: '0.15em', textTransform: 'uppercase', lineHeight: 1.6, position: 'sticky', top: 84 }}>
       {children}
     </div>
   )
@@ -338,7 +347,7 @@ function ColContent({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '64px 0' }} />
+  return <div className="km-divider" style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '64px 0' }} />
 }
 
 const H2: React.CSSProperties = {

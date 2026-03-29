@@ -1,10 +1,12 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useWorldStore } from '@/store/worldStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function FindMyNormie() {
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<'idle' | 'found' | 'burned' | 'notfound'>('idle')
+  const isMobile = useIsMobile()
   const { normies, burnedIds, setFollowedNormieId, setFocusedNormieId } = useWorldStore()
 
   const handleSearch = useCallback(() => {
@@ -39,10 +41,10 @@ export default function FindMyNormie() {
   return (
     <div style={{
       position: 'fixed',
-      bottom: 24,
-      left: 24,
+      bottom: isMobile ? 12 : 24,
+      left: isMobile ? 12 : 24,
       zIndex: 20,
-      width: 220,
+      width: isMobile ? 180 : 220,
       background: '#111827',
       border: '1px solid #374151',
       borderRadius: 8,
